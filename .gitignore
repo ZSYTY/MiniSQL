@@ -30,3 +30,15 @@
 *.exe
 *.out
 *.app
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Macos Desktop Services
+.DS_Store
