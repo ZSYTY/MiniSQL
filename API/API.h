@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-24 16:27:42 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-05-24 20:19:48
+ * @Last Modified time: 2020-05-24 21:05:56
  */
 
 #ifndef MINISQL_API_H
@@ -35,9 +35,9 @@ namespace API {
     private:
         APISingleton() {
             BufferManager *bufferManager = new BufferManager();
-            recordManager = new RecordManager(bufferManager);
-            catalogManager = new CatalogManager(bufferManager);
             indexManager = new IndexManager(bufferManager);
+            recordManager = new RecordManager(bufferManager, indexManager);
+            catalogManager = new CatalogManager(bufferManager);
         }
         RecordManager *recordManager = nullptr;
         CatalogManager *catalogManager = nullptr;

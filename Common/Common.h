@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-24 16:50:16 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-05-24 20:25:30
+ * @Last Modified time: 2020-05-24 23:14:22
  */
 
 #ifndef MINISQL_COMMON_H
@@ -18,6 +18,8 @@ const int BlockSize = 4096;
 const int MaxCharLength = 255;
 const int MaxColomnCnt = 32;
 
+typedef char BYTE;
+
 enum class SqlValueBaseType {
     MiniSQL_int,
     MiniSQL_char,
@@ -29,6 +31,8 @@ struct SqlValueType {
     bool isPrimary = false;
     bool isUnique = false;
     short charLength; // '\0' not included
+
+    SqlValueType(SqlValueBaseType _type, bool _isPrimary, bool _isUnique, short _charLength): type(_type), isPrimary(_isPrimary), isUnique(_isUnique), charLength(_charLength){}
 
     inline size_t getSize() const {
         switch (type) {
@@ -48,6 +52,22 @@ struct SqlValue {
     std::string char_val;
     float float_val;
     
+    SqlValue(SqlValueBaseType _type, int _int_val): type(_type), int_val(_int_val) {
+        if (_type != SqlValueBaseType::MiniSQL_int) {
+            throw std::runtime_error("Value types do not match");
+        }
+    }
+    SqlValue(SqlValueBaseType _type, std::string _char_val): type(_type), char_val(_char_val) {
+        if (_type != SqlValueBaseType::MiniSQL_int) {
+            throw std::runtime_error("Value types do not match");
+        }
+    }
+    SqlValue(SqlValueBaseType _type, float _float_val): type(_type), float_val(_float_val) {
+        if (_type != SqlValueBaseType::MiniSQL_int) {
+            throw std::runtime_error("Value types do not match");
+        }
+    }
+
     inline bool operator< (const SqlValue &rhs) const {
         if (type == rhs.type) {
             switch (type) {
@@ -108,6 +128,7 @@ struct SqlCondition {
     std::string colomnName;
     Operator op;
     SqlValue val;
+    SqlCondition(std::string _colomnName, Operator _op, SqlValue _val): colomnName(_colomnName), op(_op), val(_val) {}
 };
 
 typedef std::vector<SqlValue> Tuple;
@@ -116,6 +137,7 @@ struct IndexInfo {
     std::string indexName;
     std::string tableName;
     std::string colomnName;
+    IndexInfo(std::string _indexName, std::string _tableName, std::string _colomnName): indexName(_indexName), tableName(_tableName), colomnName(_colomnName) {}
 };
 
 struct TableInfo {
