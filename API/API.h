@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-24 16:27:42 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-05-24 18:33:40
+ * @Last Modified time: 2020-05-24 20:19:48
  */
 
 #ifndef MINISQL_API_H
@@ -26,45 +26,26 @@ namespace API {
         APISingleton(const APISingleton&) = delete;
         APISingleton& operator=(const APISingleton&) = delete;
 
+        // Usage: APISingleton &apiSingleton = API::APISingleton::getInstance();
         static APISingleton& getInstance(){
             static APISingleton instance;
             return instance;
         }
-        
-        RecordManager* getRecordManager() {
-            if (recordManager == nullptr) {
-                recordManager = new RecordManager;
-            }
-            return recordManager;
-        }
-
-        CatalogManager* getCatalogManager() {
-            if (catalogManager == nullptr) {
-                catalogManager = new CatalogManager;
-            }
-            return catalogManager;
-        }
-
-        IndexManager* getIndexManager() {
-            if (indexManager == nullptr) {
-                indexManager = new IndexManager;
-            }
-            return indexManager;
-        }
-        
 
     private:
-        APISingleton() {}
+        APISingleton() {
+            BufferManager *bufferManager = new BufferManager();
+            recordManager = new RecordManager(bufferManager);
+            catalogManager = new CatalogManager(bufferManager);
+            indexManager = new IndexManager(bufferManager);
+        }
         RecordManager *recordManager = nullptr;
         CatalogManager *catalogManager = nullptr;
         IndexManager *indexManager = nullptr;
-        
     };
 
     // Returning true means success, vice versa.
-
-    bool useDatabase(const std::string &dbName);
-
+    
     // std::pair<ValueName, ValueType>
     bool createTable(const std::string &tableName, const std::vector<std::pair<std::string, SqlValueType>> &schema, const std::string &primaryKeyName = "");
 

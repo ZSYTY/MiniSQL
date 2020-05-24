@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-24 16:50:16 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-05-24 17:55:42
+ * @Last Modified time: 2020-05-24 20:25:30
  */
 
 #ifndef MINISQL_COMMON_H
@@ -16,6 +16,7 @@ namespace MiniSQL {
 /* Block size of buffer and size of BPlus tree node: 4KB */
 const int BlockSize = 4096;
 const int MaxCharLength = 255;
+const int MaxColomnCnt = 32;
 
 enum class SqlValueBaseType {
     MiniSQL_int,
@@ -107,6 +108,23 @@ struct SqlCondition {
     std::string colomnName;
     Operator op;
     SqlValue val;
+};
+
+typedef std::vector<SqlValue> Tuple;
+
+struct IndexInfo {
+    std::string indexName;
+    std::string tableName;
+    std::string colomnName;
+};
+
+struct TableInfo {
+    int colomnCnt, recordCnt;
+    std::string tableName;
+    std::string primaryKeyName;
+    std::vector<std::string> colomnName;
+    std::vector<SqlValueType> colomnType;
+    std::vector<IndexInfo> indexes;
 };
 
 
