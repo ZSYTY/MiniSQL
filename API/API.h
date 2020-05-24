@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-24 16:27:42 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-05-24 17:59:25
+ * @Last Modified time: 2020-05-24 18:33:40
  */
 
 #ifndef MINISQL_API_H
@@ -11,11 +11,56 @@
 #include <vector>
 #include <string>
 
-#include "Common.h"
+#include "../Common/Common.h"
+#include "../RecordManager/RecordManager.h"
+#include "../CatalogManager/CatalogManager.h"
+#include "../IndexManager/IndexManager.h"
+
 
 using namespace MiniSQL;
 
 namespace API {
+    class APISingleton {
+    public:
+        ~APISingleton() = default;
+        APISingleton(const APISingleton&) = delete;
+        APISingleton& operator=(const APISingleton&) = delete;
+
+        static APISingleton& getInstance(){
+            static APISingleton instance;
+            return instance;
+        }
+        
+        RecordManager* getRecordManager() {
+            if (recordManager == nullptr) {
+                recordManager = new RecordManager;
+            }
+            return recordManager;
+        }
+
+        CatalogManager* getCatalogManager() {
+            if (catalogManager == nullptr) {
+                catalogManager = new CatalogManager;
+            }
+            return catalogManager;
+        }
+
+        IndexManager* getIndexManager() {
+            if (indexManager == nullptr) {
+                indexManager = new IndexManager;
+            }
+            return indexManager;
+        }
+        
+
+    private:
+        APISingleton() {}
+        RecordManager *recordManager = nullptr;
+        CatalogManager *catalogManager = nullptr;
+        IndexManager *indexManager = nullptr;
+        
+    };
+
     // Returning true means success, vice versa.
 
     bool useDatabase(const std::string &dbName);
