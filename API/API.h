@@ -8,9 +8,6 @@
 #ifndef MINISQL_API_H
 #define MINISQL_API_H
 
-#include <vector>
-#include <string>
-
 #include "../Common/Common.h"
 #include "../RecordManager/RecordManager.h"
 #include "../CatalogManager/CatalogManager.h"
