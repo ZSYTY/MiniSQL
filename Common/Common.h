@@ -151,6 +151,6 @@ struct TableInfo {
 };
 
 
-} // namesapce MiniSQL
+} // namespace MiniSQL
 
 #endif
