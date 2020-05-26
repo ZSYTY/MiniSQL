@@ -48,7 +48,7 @@ namespace API {
 
     bool dropTable(const std::string &tableName);
 
-    bool createIndex(const std::string &tableName, const std::string &colomnName, const std::string &indexName);
+    bool createIndex(const std::string &tableName, const std::string &columnName, const std::string &indexName);
 
     bool dropIndex(const std::string &indexName);
 

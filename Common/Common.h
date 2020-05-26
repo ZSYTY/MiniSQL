@@ -17,7 +17,7 @@ namespace MiniSQL {
 /* Block size of buffer and size of BPlus tree node: 4KB */
 const int BlockSize = 4096;
 const int MaxCharLength = 255;
-const int MaxColomnCnt = 32;
+const int MaxcolumnCnt = 32;
 
 typedef char BYTE;
 
@@ -126,10 +126,10 @@ enum class Operator {
 };
 
 struct SqlCondition {
-    std::string colomnName;
+    std::string columnName;
     Operator op;
     SqlValue val;
-    SqlCondition(std::string _colomnName, Operator _op, SqlValue _val): colomnName(_colomnName), op(_op), val(_val) {}
+    SqlCondition(std::string _columnName, Operator _op, SqlValue _val): columnName(_columnName), op(_op), val(_val) {}
 };
 
 typedef std::vector<SqlValue> Tuple;
@@ -137,16 +137,16 @@ typedef std::vector<SqlValue> Tuple;
 struct IndexInfo {
     std::string indexName;
     std::string tableName;
-    std::string colomnName;
-    IndexInfo(std::string _indexName, std::string _tableName, std::string _colomnName): indexName(_indexName), tableName(_tableName), colomnName(_colomnName) {}
+    std::string columnName;
+    IndexInfo(std::string _indexName, std::string _tableName, std::string _columnName): indexName(_indexName), tableName(_tableName), columnName(_columnName) {}
 };
 
 struct TableInfo {
-    int colomnCnt, recordCnt;
+    int columnCnt, recordCnt;
     std::string tableName;
     std::string primaryKeyName;
-    std::vector<std::string> colomnName;
-    std::vector<SqlValueType> colomnType;
+    std::vector<std::string> columnName;
+    std::vector<SqlValueType> columnType;
     std::vector<IndexInfo> indexes;
 };
 
