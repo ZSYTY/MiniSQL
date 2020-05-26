@@ -8,6 +8,7 @@
 #ifndef MINISQL_COMMON_H
 #define MINISQL_COMMON_H
 
+#include <vector>
 #include <string>
 #include <stdexcept>
 
