@@ -1,4 +1,4 @@
-project('libsqltoast', 'cpp', version : '0.1')
+project('libsqltoast', 'cpp', default_options : ['cpp_std=c++1z', 'b_lto=true'], version : '0.1')
 
 src = [
     'src/parser/column_definition.cc',
