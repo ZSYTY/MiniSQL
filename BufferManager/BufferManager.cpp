@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <iostream>
 #include <sys/stat.h>
 // #include <filesystem>
 
@@ -60,6 +61,10 @@ BYTE* BufferManager::getBlock(const std::string &filename, unsigned int offset, 
             infile.seekg(offset * BlockSize, std::ios::beg);
             infile.read(cur.content, BlockSize);
         } else {
+            if (! allocate) {
+                std::cerr << "In BufferManager::getBlock: Only " << blockCnt << " blocks found in " << filename << ", but offset=" << offset << " is required." << std::endl;
+                return NULL;
+            }
             static BYTE empty[BlockSize] = "";
             infile.close();
             std::ofstream outfile(defaultDir + "/" + filename, std::ios::binary | std::ios::ate);
