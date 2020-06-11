@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-26 22:10:30 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-06-01 12:22:17
+ * @Last Modified time: 2020-06-11 11:22:56
  */
 
 #include <cstdio>
@@ -101,7 +101,7 @@ int BufferManager::getBlockCnt(const std::string &filename) {
 }
 
 void BufferManager::setDirty(const std::string &filename, unsigned int offset) {
-    auto key = std::pair(filename, offset);
+    auto key = std::make_pair(filename, offset);
     if (bufferMap.count(key)) {
         Block &cur = blockBuffer[bufferMap[key]];
         if (! cur.dirty) {
@@ -173,7 +173,7 @@ Block& BufferManager::getLRU() {
 }
 
 void BufferManager::setFree(const std::string &filename, unsigned int offset) {
-    auto key = std::pair(filename, offset);
+    auto key = std::make_pair(filename, offset);
     if (bufferMap.count(key)) {
         Block &cur = blockBuffer[bufferMap[key]];
         cur.busy = false;
