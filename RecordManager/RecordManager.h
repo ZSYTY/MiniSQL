@@ -31,7 +31,7 @@ private:
     //bool checkUnique(const std::vector<Tuple> &tuples,const Tuple record,TableInfo &tableInfo);
 
     // Check if predicates match
-    bool checkConditions(TableInfo &tableInfo,const std::vector<SqlCondition> conditions,std::shared_ptr<std::vector<SqlValue>> record);
+    bool checkConditions(TableInfo &tableInfo,const std::vector<SqlCondition> conditions,std::shared_ptr<std::vector<SqlValue> > record);
 
     bool writeRecord(const Tuple record,char* ptr);
 
@@ -41,7 +41,7 @@ private:
 
     std::shared_ptr<std::vector<SqlValue>> readRecord(TableInfo &tableInfo,BYTE* ptr);
 
-    bool freeRecord(std::shared_ptr<std::vector<SqlValue>> record);
+    
 
     void printResult(const std::vector<Tuple> &results);
 
@@ -85,6 +85,8 @@ public:
             case SqlValueBaseType::MiniSQL_float: return sqlValue->float_val; break;
         }
     }
+
+    void freeRecord(std::shared_ptr<std::vector<SqlValue>> record);
 
 };
 

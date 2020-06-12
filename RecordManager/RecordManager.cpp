@@ -1,14 +1,18 @@
 #include "RecordManager.h"
 
+bool NO_CATALOG_MANAGER =  true;
+
 // Input table name
 // write to the file
 void RecordManager::createTable(const std::string &tableName)
 {
-    std::string fileName = "../data/"+tableName+".db";
+    std::string fileName = tableName+".db";
     // if table exist
-    if(catalogManager->ifTableExist(tableName)){
-        std::cout<<"Table alread exists."<<std::endl;
-    }
+    #ifdef MINISQL_CATALOG_MANAGER_H
+    // if(NO_CATALOG_MANAGER && catalogManager->ifTableExist(tableName)){
+    //     std::cout<<"Table alread exists."<<std::endl;
+    // }
+    #endif
     // write file to data
     bufferManager->createFile(fileName);
     return;
@@ -18,12 +22,11 @@ void RecordManager::createTable(const std::string &tableName)
 // drop the file
 void RecordManager::dropTable(const std::string &tableName)
 {
-    std::string fileName = "../data/"+tableName+".db";
+    std::string fileName = tableName+".db";
     // table doesn't exist
-    if(!catalogManager->ifTableExist(tableName)){
-        std::cout<<"Table doesn't exist."<<std::endl;
-    }
-    std::string fileName = "../data/"+tableName+".db";
+    // if(NO_CATALOG_MANAGER &&!catalogManager->ifTableExist(tableName)){
+    //     std::cout<<"Table doesn't exist."<<std::endl;
+    // }
     bufferManager->removeFile(fileName);
     return;
 }
@@ -54,10 +57,10 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
     
     // Check if table exist
-    if(!catalogManager->ifTableExist(tableName)){
-        std::cout<<"Table doesn't exist."<<std::endl;
-        return false;
-    }
+    // if(!catalogManager->ifTableExist(tableName)){
+    //     std::cout<<"Table doesn't exist."<<std::endl;
+    //     return false;
+    // }
 
     // Check if records illegal
     if(!checkType(tableInfo,record)){
@@ -125,10 +128,10 @@ bool RecordManager::deleteRecord(const std::string &tableName,const std::vector<
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
 
     // Check if table exist
-    if(!catalogManager->ifTableExist(tableName)){
-        std::cout<<"Table doesn't exist."<<std::endl;
-        return false;
-    }
+    // if(!catalogManager->ifTableExist(tableName)){
+    //     std::cout<<"Table doesn't exist."<<std::endl;
+    //     return false;
+    // }
 
     // Check type conflicts
     for(int i = 0; i < conditions.size();i++){
@@ -172,10 +175,10 @@ bool RecordManager::selectRecord(const std::string &tableName, const std::vector
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
 
     // Check if talbe exist(already have been done in API)
-    if(!catalogManager->ifTableExist(tableName)){
-        std::cout<<"Table doesn't exist."<<std::endl;
-        return false;
-    }
+    // if(!catalogManager->ifTableExist(tableName)){
+    //     std::cout<<"Table doesn't exist."<<std::endl;
+    //     return false;
+    // }
 
     // get tuples
     std::vector<Tuple> result;
@@ -189,13 +192,13 @@ bool RecordManager::selectRecord(const std::string &tableName, const std::vector
                          switch(tableInfo.columnType[i].type){
                              
                                 case SqlValueBaseType::MiniSQL_int:
-                                    sqlValue = new SqlValue(record->at(j).type,record->at(j).int_val);
+                                    sqlValue = new SqlValue(SqlValueBaseType::MiniSQL_int,record->at(j).int_val);
                                 break;
                                 case SqlValueBaseType::MiniSQL_char:
-                                    sqlValue = new SqlValue(record->at(j).type,record->at(j).char_val);
+                                    sqlValue = new SqlValue(SqlValueBaseType::MiniSQL_char,record->at(j).char_val);
                                 break;
                                 case SqlValueBaseType::MiniSQL_float:
-                                    sqlValue = new SqlValue(record->at(j).type,record->at(j).char_val);
+                                    sqlValue = new SqlValue(SqlValueBaseType::MiniSQL_float,record->at(j).char_val);
                                 break;
                         }
 						projection->push_back(*sqlValue);
@@ -223,7 +226,7 @@ bool RecordManager::checkType(TableInfo &tableInfo,const Tuple record)
     return true;
 }
 
-bool writeRecord(const Tuple record,char* ptr)
+bool RecordManager::writeRecord(const Tuple record,char* ptr)
 {
     int p = 0;
     // valid 
@@ -310,25 +313,25 @@ std::shared_ptr<std::vector<SqlValue>> RecordManager::readRecord(TableInfo &tabl
         unsigned int size = tableInfo.columnType[i].getSize();
         char* content = new char(size);
         memcpy(content,ptr+p,size);
-        records->emplace_back();
-        switch(tableInfo.columnType[i].type){
-            case SqlValueBaseType::MiniSQL_int:
-                records->operator[](records->size()-1).int_val = *content;
-                break;
-            case SqlValueBaseType::MiniSQL_char:
-                records->operator[](records->size()-1).char_val = *content;
-                break;
-            case SqlValueBaseType::MiniSQL_float:
-                records->operator[](records->size()-1).float_val = *content;
-                break;
-        }
-        records->operator[](records->size()-1).type = tableInfo.columnType[i].type;
+        // switch(tableInfo.columnType[i].type){
+        //     case SqlValueBaseType::MiniSQL_int:
+        //         records->operator[](records->size()-1).int_val = *content;
+        //         break;
+        //     case SqlValueBaseType::MiniSQL_char:
+        //         records->operator[](records->size()-1).char_val = *content;
+        //         break;
+        //     case SqlValueBaseType::MiniSQL_float:
+        //         records->operator[](records->size()-1).float_val = *content;
+        //         break;
+        // }
+        // records->operator[](records->size()-1).type = tableInfo.columnType[i].type;
+        records->emplace_back(tableInfo.columnType[i].type,*content);
         p+=size;
     }
     return std::shared_ptr<std::vector<SqlValue>>(records);
 }
 
-bool freeRecord(std::shared_ptr<std::vector<SqlValue>> record)
+void RecordManager::freeRecord(std::shared_ptr<std::vector<SqlValue>> record)
 {
     for(int i = 0;i < record->size();i++){
         switch(record->at(i).type){
@@ -343,6 +346,7 @@ bool freeRecord(std::shared_ptr<std::vector<SqlValue>> record)
             break;
         }
     }
+    return;
 }
 
 bool RecordManager::checkConditions(TableInfo &tableInfo,const std::vector<SqlCondition> conditions,std::shared_ptr<std::vector<SqlValue>> record)
@@ -370,6 +374,7 @@ bool RecordManager::checkConditions(TableInfo &tableInfo,const std::vector<SqlCo
             }
         }
     }
+    return valid;
 }
 
 
@@ -378,9 +383,10 @@ void RecordManager::printResult(const std::vector<Tuple> &results)
     for(int i = 0;i < results.size();i++){
         for(int j = 0;j < results[i].size();j++){
             switch(results[i][j].type){
-                case SqlValueBaseType::MiniSQL_int:
+                case SqlValueBaseType::MiniSQL_int:{
                     int p = results[i][j].int_val; std::cout<<p;
-                break;
+                    break;
+                }
                 case SqlValueBaseType::MiniSQL_char:
                 {
                     std::string s = results[i][j].char_val;
@@ -388,9 +394,11 @@ void RecordManager::printResult(const std::vector<Tuple> &results)
                     break;
                 }
                 case SqlValueBaseType::MiniSQL_float:
+                {
                     float q = results[i][j].float_val;
                     std::cout<<q;
-                break;
+                    break;
+                }
             }
             std::cout<<" ";
         }
