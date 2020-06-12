@@ -40,7 +40,7 @@ TableInfo CatalogManager::getTableInfo(const std::string &tableName)
     {
         std::cout << "No such table" << std::endl;
     }
-    bufferManager->getBlock(tableName + ".def",)
+    bufferManager->getBlock(tableName + ".def",0);
 }
 
 // 每次都是 储存本次记录 和 **下一条记录开始的数组下标**
