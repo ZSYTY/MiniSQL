@@ -5,6 +5,7 @@
  */
 
 #include "symbol.h"
+#include <ostream>
 
 namespace sqltoast {
 
