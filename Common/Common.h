@@ -59,12 +59,12 @@ struct SqlValue {
         }
     }
     SqlValue(SqlValueBaseType _type, std::string _char_val): type(_type), char_val(_char_val) {
-        if (_type != SqlValueBaseType::MiniSQL_int) {
+        if (_type != SqlValueBaseType::MiniSQL_char) {
             throw std::runtime_error("Value types do not match");
         }
     }
     SqlValue(SqlValueBaseType _type, float _float_val): type(_type), float_val(_float_val) {
-        if (_type != SqlValueBaseType::MiniSQL_int) {
+        if (_type != SqlValueBaseType::MiniSQL_float) {
             throw std::runtime_error("Value types do not match");
         }
     }
