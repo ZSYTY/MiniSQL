@@ -11,20 +11,45 @@ bool CatalogManager::deleteTable(const std::string &tableName)
     if (ifTableExist(tableName))
     {
         bufferManager->removeFile(tableName + ".def");
-        bufferManager->removeFile(tableName + ".data");
+        bufferManager->removeFile(tableName + ".data"); // TODO 后缀名是什么
         // Delete related indexes
-        // TODO
         if (bufferManager->ifFileExists(".index"))
         {
-            auto *ptr2index = (Block *) bufferManager->getBlock(".index", 0);
-            auto using_space = (unsigned short *) (ptr2index->content);
-            auto info_num = (unsigned short *) (ptr2index->content + sizeof(short));
-            for (unsigned int i = 0; i < *info_num; ++i)
+            int block_cnt = bufferManager->getBlockCnt(".index");
+            int length = 0;
+            for (int i = 0; i < block_cnt; ++i) // 遍历所有块
             {
-                auto ptr = (IndexInfo *) ptr2index->content + sizeof(short) * (2 + i);
-                if ((*ptr).indexName == "XXX")
+                bool needSetDirty = false;
+                auto ptr2index = bufferManager->getBlock(".index", i);
+                // 当 *ptr2index = '\0' 说明该 index 已被删除
+                std::string index_name, table_name, column_name;
+                for (int j = 0; j < 32; ++j) // 遍历每一条记录
                 {
-                    // TODO
+                    if (*ptr2index != '\0')
+                    {
+                        auto index_info = ptr2index;
+                        length = GetLength(index_info);
+                        index_name.copy(index_info, length + 1, 0);
+                        index_info += length + 1;
+
+                        length = GetLength(index_info);
+                        table_name.copy(index_info, length + 1, 0);
+                        index_info += length + 1;
+
+                        length = GetLength(index_info);
+                        column_name.copy(index_info, length + 1, 0);
+
+                        if (table_name == tableName or table_name == tableName + '\0')
+                        {
+                            *ptr2index = '\0';
+                            needSetDirty = true;
+                        }
+                    }
+                    ptr2index += 128;
+                }
+                if (needSetDirty)
+                {
+                    bufferManager->setDirty(".index", i);
                 }
             }
         }
@@ -54,14 +79,17 @@ TableInfo CatalogManager::getTableInfo(const std::string &tableName)
     int *cnt = (int *) info;
     tableInfo.columnCnt = *cnt;
     tableInfo.recordCnt = *(cnt + 1);
+
     // name 用来得到 tableName 和 primaryKeyName
     BYTE *name = info + 2 * sizeof(int);
     int length = GetLength(name);
     tableInfo.tableName.copy(name, length + 1, 0); // 连同 '\0' 一起复制进去
     name += length + 1;
+
     length = GetLength(name);
     tableInfo.primaryKeyName.copy(name, length + 1, 0); // 连同 '\0' 一起复制进去
     name += length + 1;
+
     // columnInfo 用来得到 column 的信息
     BYTE *columnInfo = name;
     for (int i = 0; i < tableInfo.columnCnt; ++i)
@@ -75,12 +103,16 @@ TableInfo CatalogManager::getTableInfo(const std::string &tableName)
         // 开始读取 columnType
         auto svbType = (SqlValueBaseType) (*columnInfo);
         columnInfo += sizeof(SqlValueBaseType);
+
         auto is_primary = (bool) (*columnInfo);
         columnInfo += sizeof(bool);
+
         auto is_unique = (bool) (*columnInfo);
         columnInfo += sizeof(bool);
+
         auto char_length = (short) (*columnInfo);
         columnInfo += sizeof(short);
+
         SqlValueType svt(svbType, is_primary, is_unique, char_length);
         tableInfo.columnType.push_back(svt);
     }
@@ -95,28 +127,33 @@ TableInfo CatalogManager::getTableInfo(const std::string &tableName)
     */
     for (int i = 0; i < block_cnt; ++i)
     {
-        auto *tmp = (Block *) bufferManager->getBlock(".index", i);
-        auto ptr2index = tmp->content;
+        auto ptr2index = bufferManager->getBlock(".index", i);
         // 当 *ptr2index = '\0' 说明该 index 已被删除
         std::string index_name, table_name, column_name;
-        if (*ptr2index != '\0')
+        for (int j = 0; j < 32; ++j)
         {
-            auto index_info = ptr2index;
-            length = GetLength(index_info);
-            index_name.copy(index_info, length + 1, 0);
-            index_info += length + 1;
-            length = GetLength(index_info);
-            table_name.copy(index_info, length + 1, 0);
-            index_info += length + 1;
-            length = GetLength(index_info);
-            column_name.copy(index_info, length + 1, 0);
-            if (table_name == tableName or table_name == tableName + '\0')
+            if (*ptr2index != '\0')
             {
-                IndexInfo indexInfo(index_name, table_name, column_name);
-                tableInfo.indexes.push_back(indexInfo);
+                auto index_info = ptr2index;
+                length = GetLength(index_info);
+                index_name.copy(index_info, length + 1, 0);
+                index_info += length + 1;
+
+                length = GetLength(index_info);
+                table_name.copy(index_info, length + 1, 0);
+                index_info += length + 1;
+
+                length = GetLength(index_info);
+                column_name.copy(index_info, length + 1, 0);
+
+                if (table_name == tableName or table_name == tableName + '\0')
+                {
+                    IndexInfo indexInfo(index_name, table_name, column_name);
+                    tableInfo.indexes.push_back(indexInfo);
+                }
             }
+            ptr2index += 128;
         }
-        ptr2index += 128;
     }
 
     return tableInfo;
@@ -130,9 +167,14 @@ bool CatalogManager::createIndex(const IndexInfo &index)
     {
         bufferManager->createFile(".index");
     }
-    int block_cnt = bufferManager->getBlockCnt(".index");
-    auto *tmp = (Block *) bufferManager->getBlock(".index", block_cnt - 1);
-    auto ptr2index = tmp->content;
+    int modified_block_offset = bufferManager->getBlockCnt(".index") - 1;
+    auto ptr2index = bufferManager->getBlock(".index", modified_block_offset);
+    // 如果整块都已经满了
+    if (*(ptr2index + 31 * 128) != '\0')
+    {
+        ++modified_block_offset;
+        ptr2index = bufferManager->getBlock(".index", modified_block_offset, true);
+    }
     while (*ptr2index != '\0')
     {
         ptr2index += 128;
@@ -147,6 +189,8 @@ bool CatalogManager::createIndex(const IndexInfo &index)
 
     strcpy(ptr2index, index.tableName.c_str());
     *(ptr2index + index.columnName.size()) = '\0';
+
+    bufferManager->setDirty(".index", modified_block_offset);
 
     return true;
 }
@@ -174,16 +218,23 @@ bool CatalogManager::createTable(const std::string &tableName,
         strcpy(column_info, item.first.c_str());
         *(column_info + item.first.size()) = '\0';
         column_info += item.first.size() + 1;
+
         // 写入 SqlValueType
         auto svbType = (SqlValueBaseType *) column_info;
         *svbType = item.second.type;
         column_info += sizeof(SqlValueBaseType);
+
+        // 写入 isPrimary
         auto is_primary = (bool *) column_info;
         *is_primary = item.second.isPrimary;
         column_info += sizeof(bool);
+
+        // 写入 isUnique
         auto is_unique = (bool *) column_info;
         *is_unique = item.second.isUnique;
         column_info += sizeof(bool);
+
+        // 写入 charLength
         auto char_length = (short *) column_info;
         *char_length = item.second.charLength;
         column_info += sizeof(short);
@@ -199,29 +250,34 @@ bool CatalogManager::deleteIndex(const std::string &indexName)
     int length = 0;
     for (int i = 0; i < block_cnt; ++i)
     {
-        auto *tmp = (Block *) bufferManager->getBlock(".index", i);
-        auto ptr2index = tmp->content;
+        auto ptr2index = bufferManager->getBlock(".index", i);
         // 当 *ptr2index = '\0' 说明该 index 已被删除
         std::string index_name, table_name, column_name;
-        if (*ptr2index != '\0')
+        for (int j = 0; j < 32; ++j)
         {
-            auto index_info = ptr2index;
-            length = GetLength(index_info);
-            index_name.copy(index_info, length + 1, 0);
-            index_info += length + 1;
-            length = GetLength(index_info);
-            table_name.copy(index_info, length + 1, 0);
-            index_info += length + 1;
-            length = GetLength(index_info);
-            column_name.copy(index_info, length + 1, 0);
-            if (index_name == indexName or index_name == indexName + '\0')
+            if (*ptr2index != '\0')
             {
-                *ptr2index = '\0';
-                bufferManager->setDirty(".index", i);
-                return true;
+                auto index_info = ptr2index;
+                length = GetLength(index_info);
+                index_name.copy(index_info, length + 1, 0);
+                index_info += length + 1;
+
+                length = GetLength(index_info);
+                table_name.copy(index_info, length + 1, 0);
+                index_info += length + 1;
+
+                length = GetLength(index_info);
+                column_name.copy(index_info, length + 1, 0);
+
+                if (index_name == indexName or index_name == indexName + '\0')
+                {
+                    *ptr2index = '\0';
+                    bufferManager->setDirty(".index", i);
+                    return true;
+                }
             }
+            ptr2index += 128;
         }
-        ptr2index += 128;
     }
 
     return false;
