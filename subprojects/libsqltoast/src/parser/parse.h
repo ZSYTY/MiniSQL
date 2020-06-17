@@ -37,6 +37,11 @@ bool parse_rollback(
         token_t& cur_tok,
         std::unique_ptr<statement_t>& out);
 
+bool parse_create_index(
+        parse_context_t& ctx,
+        token_t& cur_tok,
+        std::unique_ptr<statement_t>& out);
+
 // Returns true if the CREATE VIEW statement was parsed successfully from
 // the parse context
 bool parse_create_view(
@@ -54,6 +59,11 @@ bool parse_create_schema(
 // Returns true if the CREATE TABLE statement was parsed successfully from
 // the parse context
 bool parse_create_table(
+        parse_context_t& ctx,
+        token_t& cur_tok,
+        std::unique_ptr<statement_t>& out);
+
+bool parse_drop_index(
         parse_context_t& ctx,
         token_t& cur_tok,
         std::unique_ptr<statement_t>& out);

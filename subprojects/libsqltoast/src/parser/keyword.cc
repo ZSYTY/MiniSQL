@@ -105,6 +105,7 @@ kw_jump_table_t _init_kw_jump_table(char lead_char) {
             t.emplace_back(kw_jump_table_entry_t(SYMBOL_INTERVAL, "INTERVAL"));
             t.emplace_back(kw_jump_table_entry_t(SYMBOL_INT, "INT"));
             t.emplace_back(kw_jump_table_entry_t(SYMBOL_INTEGER, "INTEGER"));
+            t.emplace_back(kw_jump_table_entry_t(SYMBOL_INDEX, "INDEX"));
             return t;
         case 'j':
             t.emplace_back(kw_jump_table_entry_t(SYMBOL_JOIN, "JOIN"));

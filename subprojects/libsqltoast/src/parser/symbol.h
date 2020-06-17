@@ -117,6 +117,7 @@ typedef enum symbol {
     SYMBOL_HAVING,
     SYMBOL_HOUR,
     SYMBOL_IN,
+    SYMBOL_INDEX,
     SYMBOL_INNER,
     SYMBOL_INSERT,
     SYMBOL_INT,

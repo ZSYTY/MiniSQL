@@ -19,17 +19,19 @@ static const size_t NUM_ALTER_STATEMENT_PARSERS = 1;
 static const parse_func_t alter_statement_parsers[1] = {
     &parse_alter_table
 };
-static const size_t NUM_CREATE_STATEMENT_PARSERS = 3;
-static const parse_func_t create_statement_parsers[3] = {
+static const size_t NUM_CREATE_STATEMENT_PARSERS = 4;
+static const parse_func_t create_statement_parsers[4] = {
     &parse_create_table,
     &parse_create_view,
-    &parse_create_schema
+    &parse_create_schema,
+    &parse_create_index
 };
-static const size_t NUM_DROP_STATEMENT_PARSERS = 3;
-static const parse_func_t drop_statement_parsers[3] = {
+static const size_t NUM_DROP_STATEMENT_PARSERS = 4;
+static const parse_func_t drop_statement_parsers[4] = {
     &parse_drop_table,
     &parse_drop_view,
-    &parse_drop_schema
+    &parse_drop_schema,
+    &parse_drop_index
 };
 static const size_t NUM_DELETE_STATEMENT_PARSERS = 1;
 static const parse_func_t delete_statement_parsers[1] = {

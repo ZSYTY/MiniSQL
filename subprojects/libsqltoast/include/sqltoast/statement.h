@@ -15,10 +15,12 @@ typedef enum statement_type {
     STATEMENT_TYPE_CREATE_SCHEMA,
     STATEMENT_TYPE_CREATE_TABLE,
     STATEMENT_TYPE_CREATE_VIEW,
+    STATEMENT_TYPE_CREATE_INDEX,
     STATEMENT_TYPE_DELETE,
     STATEMENT_TYPE_DROP_SCHEMA,
     STATEMENT_TYPE_DROP_TABLE,
     STATEMENT_TYPE_DROP_VIEW,
+    STATEMENT_TYPE_DROP_INDEX,
     STATEMENT_TYPE_GRANT,
     STATEMENT_TYPE_INSERT,
     STATEMENT_TYPE_ROLLBACK,
@@ -367,6 +369,28 @@ typedef struct grant_statement : statement_t {
         return privileges.empty();
     }
 } grant_statement_t;
+
+typedef struct create_index_statement : statement_t {
+    lexeme_t index_name, table_name;
+    std::vector<lexeme_t> col_list;
+    create_index_statement(
+            lexeme_t& index_name,
+            lexeme_t& table_name,
+            std::vector<lexeme_t>&& col_list) :
+        statement_t(STATEMENT_TYPE_CREATE_INDEX),
+        index_name(index_name),
+        table_name(table_name),
+        col_list(std::move(col_list))
+    {}
+} create_index_statement_t;
+
+typedef struct drop_index_statement : statement_t {
+    lexeme_t index_name;
+    drop_index_statement(lexeme_t& index_name) :
+        statement_t(STATEMENT_TYPE_DROP_INDEX),
+        index_name(index_name)
+    {}
+} drop_index_statement_t;
 
 } // namespace sqltoast
 
