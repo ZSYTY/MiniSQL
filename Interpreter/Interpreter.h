@@ -27,6 +27,7 @@ private:
     
     /* execute sqltoast statements */
     void execute_select(const sqltoast::select_statement_t *stmt);
+    void execute_create_table(const sqltoast::create_table_statement_t *stmt);
 };
 
 #endif
