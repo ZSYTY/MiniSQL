@@ -75,7 +75,6 @@ void Interpreter::execute_create_table(const sqltoast::create_table_statement_t 
     }
 
     // parse out-of-line constraints
-    std::cout<<stmt->constraints.size()<<std::endl;
     for(const auto &constr : stmt->constraints) {
         if(constr->type == sqltoast::CONSTRAINT_TYPE_PRIMARY_KEY) {
             if(!primary_key.empty()) {
@@ -91,7 +90,6 @@ void Interpreter::execute_create_table(const sqltoast::create_table_statement_t 
                 std::cout << "Error: column `" << primary_key << "` is not defined" << std::endl;
                 return;
             }
-            std::cout<<"PK "<<primary_key<<std::endl;
             // col_map[primary_key]->isPrimary = true;
             auto col = std::move(cols[col_map[primary_key]]).second;
             col.isPrimary = true;
