@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 static constexpr auto GREETINGS = "MiniSQL Interpreter v0.1\n\n";
 
@@ -43,6 +44,58 @@ void Interpreter::run()
                     || directive == ".quit") {
                     std::cout << "Bye\n\n";
                     return;
+                } else if(directive == ".s" || directive == ".source") {
+                    if(!sql.empty()) {
+                        std::cout << "Error: cannot source from a file in this state" << std::endl;
+                        continue;
+                    }
+                    auto path_begin = std::find_if(end, input.end(), [](int ch) {
+                        return !std::isspace(ch);
+                    });
+                    auto path_end = input.end() - 1;
+                    while(path_end > path_begin && std::isspace(*path_end))
+                        --path_end;
+                    ++path_end;
+                    if(path_begin >= path_end) {
+                        std::cout << "Error: empty filename" << std::endl;
+                        continue;
+                    }
+                    std::string path(path_begin, path_end);
+                    std::ifstream fin(path);
+                    if(!fin) {
+                        std::cout << "Error: cannot open file \"" << path << '\"' << std::endl;
+                        fin.close();
+                        continue;
+                    }
+
+                    char *buffer = new char[64 << 10];
+                    while(true) {
+                        while(!fin.eof() && fin.peek() == ';')
+                            fin.ignore(1);
+                        fin.get(buffer, (64 << 10), ';');
+                        if(fin.eof()) {
+                            for(int i = 0; i < fin.gcount(); i++) {
+                                if(!isspace(buffer[i])) {
+                                    std::cout << "Warning: SQL statements must end with a semicolon" << std::endl;
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                        if(!fin) {
+                            std::cout << "Error: I/O failure" << std::endl;
+                            break;
+                        }
+                        if(fin.gcount() == (64 << 10) - 1) {
+                            std::cout << "Error: statement length limit exceeded" << std::endl;
+                            break;
+                        }
+                        buffer[fin.gcount()] = ';';
+                        execute_sql(sqltoast::parse_input_t(buffer, buffer + fin.gcount() + 1));
+                    }
+                    delete[] buffer;
+                    fin.close();
+                    continue;
                 } else {
                     std::cout << "Error: unknown interpreter directive \"" << directive << '\"'
                         << std::endl;
@@ -58,7 +111,7 @@ void Interpreter::run()
             if(sql.find(';') != std::string::npos) {
                 // execute the statement
                 // currently, only one statement per line is supported
-                execute_sql(sql);
+                execute_sql(sqltoast::parse_input_t(sql.cbegin(), sql.cend()));
                 std::cout << std::endl;
                 sql.clear();
             }

@@ -26,7 +26,7 @@ public:
 
 private:
     /* execute an SQL statement */
-    void execute_sql(const std::string &statement);
+    void execute_sql(sqltoast::parse_input_t subject);
     
     /* execute sqltoast statements */
     void execute_select(const sqltoast::select_statement_t *stmt);

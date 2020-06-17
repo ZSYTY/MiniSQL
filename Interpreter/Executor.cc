@@ -2,9 +2,8 @@
 
 #include <iostream>
 
-void Interpreter::execute_sql(const std::string &statement)
+void Interpreter::execute_sql(sqltoast::parse_input_t subject)
 {
-    sqltoast::parse_input_t subject(statement.cbegin(), statement.cend());
     sqltoast::parse_result_t res = sqltoast::parse(subject);
 
     if(res.code == sqltoast::PARSE_OK) {
