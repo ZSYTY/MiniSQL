@@ -10,6 +10,7 @@
 
 #include <set>
 #include <map>
+#include <queue>
 
 #include "../Common/Common.h"
 
@@ -22,7 +23,9 @@ struct Block {
     bool dirty; // dirty means that this block is modified in memory, but not written into the disk
     bool busy;
     int LRUCnt;
-    char content[BlockSize];
+    BYTE content[BlockSize];
+
+    Block(int _id): id(_id) {}
 };
 
 class BufferManager
@@ -30,8 +33,16 @@ class BufferManager
 private:
     /* data */
     std::set<int> dirtyList;
+    std::queue<int> freeList;
+    std::queue<std::pair<int, int>> LRUList;
     std::vector<Block> blockBuffer;
     std::map<std::pair<std::string, unsigned int>, int> bufferMap;
+    int LRUCnt;
+
+    /* utils */
+    int getBlockCnt(std::ifstream &infile);
+    void flush(Block &block, bool bulk = false);
+    void restoreMap(const Block &block);
 public:
     static const int maxBlockCnt = 65536; // 65536 * 4KB = 256 MB
     static const std::string defaultDir;
