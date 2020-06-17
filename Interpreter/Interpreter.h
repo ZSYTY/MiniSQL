@@ -34,6 +34,8 @@ private:
     void execute_delete(const sqltoast::delete_statement_t *stmt);
     void execute_create_table(const sqltoast::create_table_statement_t *stmt);
     void execute_drop_table(const sqltoast::drop_table_statement_t *stmt);
+    void execute_create_index(const sqltoast::create_index_statement_t *stmt);
+    void execute_drop_index(const sqltoast::drop_index_statement_t *stmt);
 
     /* helper functions for parsing SQL statements */
     bool parse_where_conds(std::vector<SqlCondition> &vec,

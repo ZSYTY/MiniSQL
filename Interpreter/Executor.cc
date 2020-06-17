@@ -34,6 +34,16 @@ void Interpreter::execute_sql(sqltoast::parse_input_t subject)
                 execute_drop_table(drp);
                 break;
             }
+            case sqltoast::STATEMENT_TYPE_CREATE_INDEX: {
+                auto cre = static_cast<const sqltoast::create_index_statement_t *>(stmt.get());
+                execute_create_index(cre);
+                break;
+            }
+            case sqltoast::STATEMENT_TYPE_DROP_INDEX: {
+                auto drp = static_cast<const sqltoast::drop_index_statement_t *>(stmt.get());
+                execute_drop_index(drp);
+                break;
+            }
             default: {
                 std::cout << "Error: unsupported statement type " << stmt->type << std::endl;
                 break;
