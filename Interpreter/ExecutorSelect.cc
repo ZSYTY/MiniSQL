@@ -3,7 +3,7 @@
 #include <iostream>
 #include "API/API.h"
 
-static bool process_where_conds(std::vector<SqlCondition> &vec,
+bool Interpreter::process_where_conds(std::vector<SqlCondition> &vec,
     const std::unique_ptr<sqltoast::boolean_term> &term)
 {
     if(!term)
@@ -30,45 +30,10 @@ static bool process_where_conds(std::vector<SqlCondition> &vec,
     }
     auto comp_l_1 = static_cast<const sqltoast::row_value_expression_t *>(comp_l),
          comp_r_1 = static_cast<const sqltoast::row_value_expression_t *>(comp_r);
-    if(comp_l_1->value->type != sqltoast::VALUE_EXPRESSION_TYPE_NUMERIC_EXPRESSION ||
-        comp_r_1->value->type != sqltoast::VALUE_EXPRESSION_TYPE_NUMERIC_EXPRESSION) {
-        std::cout << "Error: only numeric types in WHERE statements are supported" << std::endl;
+    auto col_ref = col_ref_from_literal(comp_l_1);
+    auto val = sql_val_from_literal(comp_r_1);
+    if(!col_ref || !val)
         return false;
-    }
-    auto comp_l_2 = static_cast<const sqltoast::numeric_expression_t *>(comp_l_1->value.get()),
-         comp_r_2 = static_cast<const sqltoast::numeric_expression_t *>(comp_r_1->value.get());
-    if(comp_l_2->op != sqltoast::NUMERIC_OP_NONE || comp_r_2->op != sqltoast::NUMERIC_OP_NONE
-        || comp_l_2->left->op != sqltoast::NUMERIC_OP_NONE || comp_r_2->left->op != sqltoast::NUMERIC_OP_NONE) {
-        std::cout << "Error: arithmetics in WHERE statements are supported yet" << std::endl;
-        return false;
-    }
-    if(comp_l_2->left->left->sign != 0) {
-        std::cout << "Error: arithmetics in WHERE statements are supported yet" << std::endl;
-        return false;
-    }
-    auto val_sign = comp_r_2->left->left->sign;
-    const auto &comp_l_3 = comp_l_2->left->left->primary,
-               &comp_r_3 = comp_r_2->left->left->primary;
-    if(comp_l_3->type != sqltoast::NUMERIC_PRIMARY_TYPE_VALUE ||
-        comp_r_3->type != sqltoast::NUMERIC_PRIMARY_TYPE_VALUE) {
-        std::cout << "Error: functions in WHERE statements are supported yet" << std::endl;
-        return false;
-    }
-    auto comp_l_4 = static_cast<const sqltoast::numeric_value_t *>(comp_l_3.get()),
-         comp_r_4 = static_cast<const sqltoast::numeric_value_t *>(comp_r_3.get());
-    if(comp_l_4->primary->vep_type != sqltoast::VEP_TYPE_COLUMN_REFERENCE ||
-        comp_r_4->primary->vep_type != sqltoast::VEP_TYPE_UNSIGNED_VALUE_SPECIFICATION) {
-        std::cout << "Error: in a comparison, the lhs must be a column reference, "
-            "and the rhs must be a number" << std::endl;
-        return false;
-    }
-    std::string col_ref(comp_l_4->primary->lexeme.start, comp_l_4->primary->lexeme.end);
-    std::string val_str(comp_r_4->primary->lexeme.start, comp_r_4->primary->lexeme.end);
-    int val = std::stoi(val_str);
-    if(val_sign > 0)
-        val = std::abs(val);
-    else if(val_sign < 0)
-        val = -val;
     // parse operator
     bool inverse = term->factor->reverse_op;
     Operator operator_;
@@ -96,7 +61,7 @@ static bool process_where_conds(std::vector<SqlCondition> &vec,
         return false;
     }
 
-    vec.push_back(SqlCondition(col_ref, operator_, SqlValue(SqlValueBaseType::MiniSQL_int, val)));
+    vec.push_back(SqlCondition(*col_ref, operator_, *val));
     
     return process_where_conds(vec, term->and_operand);
 }
@@ -150,6 +115,7 @@ void Interpreter::execute_select(const sqltoast::select_statement_t *stmt)
     if(!where_cond.empty()) {
         std::cout << " where ";
         for(const auto &c : where_cond) {
+            // FIXME non-int types are not printed
             std::cout << c.columnName << ' ' << (int) c.op << ' ' << c.val.int_val << ", ";
         }
     }
