@@ -14,7 +14,7 @@ void Interpreter::run()
     std::cout << GREETINGS;
     std::string sql;    // buffer for SQL statements
 
-    while(true) {
+    while(!std::cin.eof()) {
         if(sql.empty())
             std::cout << "MiniSQL > ";
         else
