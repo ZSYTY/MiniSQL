@@ -134,6 +134,7 @@ expect_table_list_element:
         return false;
     if (! parse_constraint(ctx, cur_tok, constraint))
         goto err_expect_column_def_or_constraint;
+    constraints.emplace_back(std::move(constraint));
     goto expect_table_list_close;
 err_expect_column_def_or_constraint:
     if (ctx.result.code == PARSE_SYNTAX_ERROR)
