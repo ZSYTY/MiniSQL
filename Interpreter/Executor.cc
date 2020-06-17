@@ -15,6 +15,11 @@ void Interpreter::execute_sql(const std::string &statement)
                 execute_select(sel);
                 break;
             }
+            case sqltoast::STATEMENT_TYPE_INSERT: {
+                auto ins = static_cast<const sqltoast::insert_statement_t *>(stmt.get());
+                execute_insert(ins);
+                break;
+            }
             case sqltoast::STATEMENT_TYPE_CREATE_TABLE: {
                 auto cre = static_cast<const sqltoast::create_table_statement_t *>(stmt.get());
                 execute_create_table(cre);
