@@ -15,16 +15,16 @@ bool CatalogManager::deleteTable(const std::string &tableName)
     bufferManager->removeFile(tableName + ".def");
     bufferManager->removeFile(tableName + ".data"); // TODO 后缀名是什么
     // Delete related indexes
-    if (!bufferManager->ifFileExists(".index"))
+    if (!bufferManager->ifFileExists("index"))
     {
         return true;
     }
-    int block_cnt = bufferManager->getBlockCnt(".index");
+    int block_cnt = bufferManager->getBlockCnt("index");
     std::stringstream ss;
     for (int i = 0; i < block_cnt; ++i) // 遍历所有块
     {
         bool needSetDirty = false;
-        auto ptr2index = bufferManager->getBlock(".index", i, true);
+        auto ptr2index = bufferManager->getBlock("index", i, true);
         // 当 *ptr2index = '\0' 说明该 index 已被删除
         std::string index_name, table_name, column_name;
         for (int j = 0; j < 32; ++j) // 遍历每一条记录
@@ -57,7 +57,7 @@ bool CatalogManager::deleteTable(const std::string &tableName)
         }
         if (needSetDirty)
         {
-            bufferManager->setDirty(".index", i);
+            bufferManager->setDirty("index", i);
         }
     }
     return true;
@@ -122,7 +122,7 @@ TableInfo CatalogManager::getTableInfo(const std::string &tableName)
         tableInfo.columnType.push_back(svt);
     }
 
-    int block_cnt = bufferManager->getBlockCnt(".index");
+    int block_cnt = bufferManager->getBlockCnt("index");
     /*
     struct IndexInfo {
     std::string indexName;
@@ -133,7 +133,7 @@ TableInfo CatalogManager::getTableInfo(const std::string &tableName)
 
     for (int i = 0; i < block_cnt; ++i)
     {
-        auto ptr2index = bufferManager->getBlock(".index", i);
+        auto ptr2index = bufferManager->getBlock("index", i);
         // 当 *ptr2index = '\0' 说明该 index 已被删除
         std::string index_name, table_name, column_name;
         for (int j = 0; j < 32; ++j)
@@ -173,19 +173,19 @@ bool CatalogManager::createIndex(const IndexInfo &index)
 {
     int modified_block_offset = 0;
     // If there is no .index file, initialize one
-    if (!bufferManager->ifFileExists(".index"))
+    if (!bufferManager->ifFileExists("index"))
     {
-        bufferManager->createFile(".index");
+        bufferManager->createFile("index");
     }
     else
     {
-        modified_block_offset = bufferManager->getBlockCnt(".index") - 1;
+        modified_block_offset = bufferManager->getBlockCnt("index") - 1;
     }
-    auto ptr2index = bufferManager->getBlock(".index", 0, true);
+    auto ptr2index = bufferManager->getBlock("index", 0, true);
     // 如果整块都已经满了
     if (*(ptr2index + 31 * 128) != '\0')
     {
-        ptr2index = bufferManager->getBlock(".index", ++modified_block_offset, true);
+        ptr2index = bufferManager->getBlock("index", ++modified_block_offset, true);
     }
     while (*ptr2index != '\0')
     {
@@ -225,7 +225,7 @@ bool CatalogManager::createIndex(const IndexInfo &index)
 //    std::cout << '\n';
 
 
-    bufferManager->setDirty(".index", 0);
+    bufferManager->setDirty("index", 0);
 
     return true;
 }
@@ -304,11 +304,11 @@ bool CatalogManager::createTable(const std::string &tableName,
 
 bool CatalogManager::deleteIndex(const std::string &indexName)
 {
-    int block_cnt = bufferManager->getBlockCnt(".index");
+    int block_cnt = bufferManager->getBlockCnt("index");
     std::stringstream ss;
     for (int i = 0; i < block_cnt; ++i)
     {
-        auto ptr2index = bufferManager->getBlock(".index", i);
+        auto ptr2index = bufferManager->getBlock("index", i);
         // 当 *ptr2index = '\0' 说明该 index 已被删除
         std::string index_name, table_name, column_name;
         for (int j = 0; j < 32; ++j)
@@ -334,7 +334,7 @@ bool CatalogManager::deleteIndex(const std::string &indexName)
                 if (index_name == indexName)
                 {
                     *ptr2index = '\0';
-                    bufferManager->setDirty(".index", i);
+                    bufferManager->setDirty("index", i);
                     return true;
                 }
             }
