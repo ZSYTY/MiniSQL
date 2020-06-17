@@ -31,10 +31,12 @@ private:
     /* execute sqltoast statements */
     void execute_select(const sqltoast::select_statement_t *stmt);
     void execute_insert(const sqltoast::insert_statement_t *stmt);
+    void execute_delete(const sqltoast::delete_statement_t *stmt);
     void execute_create_table(const sqltoast::create_table_statement_t *stmt);
+    void execute_drop_table(const sqltoast::drop_table_statement_t *stmt);
 
     /* helper functions for parsing SQL statements */
-    bool process_where_conds(std::vector<SqlCondition> &vec,
+    bool parse_where_conds(std::vector<SqlCondition> &vec,
         const std::unique_ptr<sqltoast::boolean_term> &term);
     SqlValue sql_val_from_string(const std::string &str, int8_t sign = 0);
     std::optional<SqlValue> sql_val_from_literal(const sqltoast::row_value_expression_t *lit);

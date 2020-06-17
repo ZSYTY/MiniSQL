@@ -19,9 +19,19 @@ void Interpreter::execute_sql(sqltoast::parse_input_t subject)
                 execute_insert(ins);
                 break;
             }
+            case sqltoast::STATEMENT_TYPE_DELETE: {
+                auto del = static_cast<const sqltoast::delete_statement_t *>(stmt.get());
+                execute_delete(del);
+                break;
+            }
             case sqltoast::STATEMENT_TYPE_CREATE_TABLE: {
                 auto cre = static_cast<const sqltoast::create_table_statement_t *>(stmt.get());
                 execute_create_table(cre);
+                break;
+            }
+            case sqltoast::STATEMENT_TYPE_DROP_TABLE: {
+                auto drp = static_cast<const sqltoast::drop_table_statement_t *>(stmt.get());
+                execute_drop_table(drp);
                 break;
             }
             default: {
