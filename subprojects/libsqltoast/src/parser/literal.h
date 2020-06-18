@@ -26,7 +26,8 @@ tokenize_result_t token_numeric_literal(
 tokenize_result_t token_character_string_literal(
         parse_position_t cursor,
         const parse_position_t end,
-        symbol_t literal_sym);
+        symbol_t literal_sym,
+        char delimiter = '\'');
 
 tokenize_result_t token_bit_string_literal(
         parse_position_t cursor,

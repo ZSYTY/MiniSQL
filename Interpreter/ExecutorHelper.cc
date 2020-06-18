@@ -8,9 +8,9 @@ SqlValue Interpreter::sql_val_from_string(const std::string &str, int8_t sign)
 {
     if(str.empty()) {
         abort();
-    } else if(str[0] == '\'') {
+    } else if(str[0] == '\'' || str[0] == '"') {
         // is a string
-        assert(str.back() == '\'');
+        assert(str.back() == str[0]);
         auto substr = str.substr(1, str.size() - 2);    // FIXME escape characters are ignored
         return SqlValue(SqlValueBaseType::MiniSQL_char, substr);
     } else if(str.find('.') != std::string::npos || str.find('.') != std::string::npos

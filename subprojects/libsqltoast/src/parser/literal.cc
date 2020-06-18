@@ -32,8 +32,9 @@ tokenize_result_t token_literal(
         case '9':
             return token_numeric_literal(cursor, end, false);
         case '\'':
+        case '"':
             return token_character_string_literal(cursor, end,
-                    SYMBOL_LITERAL_CHARACTER_STRING);
+                    SYMBOL_LITERAL_CHARACTER_STRING, *cursor);
         case 'N':
             if (((cursor + 1) == end) || *(cursor + 1) != '\'')
                 return tokenize_result_t(TOKEN_NOT_FOUND);
@@ -165,19 +166,20 @@ not_found:
 tokenize_result_t token_character_string_literal(
         parse_position_t cursor,
         const parse_position_t end,
-        symbol_t literal_sym) {
+        symbol_t literal_sym,
+        char delimiter) {
     parse_position_t start = cursor;
     char c = *cursor++;
     char last_c = c;
     while (cursor != end) {
         c = *cursor++;
-        if (c == '\'' && last_c != '\\') {
+        if (c == delimiter && last_c != '\\') {
             last_c = c;
             break;
         }
         last_c = c;
     }
-    if (last_c == '\'' && (cursor - start > 1))
+    if (last_c == delimiter && (cursor - start > 1))
         goto push_literal;
     return tokenize_result_t(TOKEN_NOT_FOUND);
 push_literal:
