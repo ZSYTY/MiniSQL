@@ -33,7 +33,7 @@ private:
     // Check if predicates match
     bool checkConditions(TableInfo &tableInfo,const std::vector<SqlCondition> conditions,std::shared_ptr<std::vector<SqlValue> > record);
 
-    bool writeRecord(const Tuple record,char* ptr);
+    bool writeRecord(TableInfo &tableInfo,const Tuple record,char* ptr);
 
     bool insertOneRecord(const std::string &tableName, const Tuple record);
 
@@ -43,7 +43,7 @@ private:
 
     void printResult(const std::vector<Tuple> &results);
 
-    SqlValue* getValue(TableInfo &tableInfo,int indexOffset);
+    SqlValue* getValue(TableInfo &tableInfo,int indexOffset,int indexPos);
 
 public:
     RecordManager(BufferManager *_bufferManager, IndexManager *_indexManager, CatalogManager *_catalogManager): bufferManager(_bufferManager), indexManager(_indexManager),catalogManager(_catalogManager) {};
@@ -78,7 +78,7 @@ public:
     );
 
     template <class T>
-    inline T getAsType(SqlValue* sqlValue){
+    inline T getAsType(SqlValue* sqlValue,SqlValueBaseType){
         switch(sqlValue->type){
             case SqlValueBaseType::MiniSQL_int: return sqlValue->int_val; break;
             case SqlValueBaseType::MiniSQL_char: return sqlValue->char_val; break;

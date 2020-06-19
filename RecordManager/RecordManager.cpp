@@ -86,7 +86,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
     int blockNum = bufferManager->getBlockCnt(fileName);
     if(blockNum == 0){
         char* content = bufferManager->getBlock(fileName,blockNum,true);
-        if(writeRecord(record,content)){
+        if(writeRecord(tableInfo,record,content)){
             std::cout<<"Successfully write record"<<std::endl;
             saveIndexes(tableInfo,record,blockNum);
         }
@@ -99,14 +99,17 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
         unsigned int recordLen = getRecordSize(tableName); 
         for(vacant = 0; blockPtr[vacant]!= '\0' && vacant< BlockSize;vacant++);
         if(BlockSize - vacant >= recordLen){
-            writeRecord(record,blockPtr+vacant);
+            writeRecord(tableInfo,record,blockPtr+vacant);
             bufferManager->setDirty(fileName,blockNum-1);
             saveIndexes(tableInfo,record,blockNum);
             return true;
         }
     }
-    
-
+    char* content = bufferManager->getBlock(fileName,blockNum,true);
+    if(writeRecord(tableInfo,record,content)){
+        std::cout<<"Successfully write record"<<std::endl;
+        saveIndexes(tableInfo,record,blockNum);
+    }
     return true;
 }
 
@@ -219,7 +222,7 @@ bool RecordManager::checkType(TableInfo &tableInfo,const Tuple record)
 }
 
 
-bool RecordManager::writeRecord(const Tuple record,char* ptr)
+bool RecordManager::writeRecord(TableInfo &tableInfo,const Tuple record,char* ptr)
 {
     int p = 0;
     // valid 
@@ -234,9 +237,16 @@ bool RecordManager::writeRecord(const Tuple record,char* ptr)
                 p+=sizeof(record[i].type);
                 break;
             case SqlValueBaseType::MiniSQL_char:
-                for(int k = 0;k < record[i].char_val.size();k++) {
-                    memcpy(ptr + p, &record[i].char_val[k], sizeof(record[i].type));
-                    p += sizeof(record[i].char_val[k]);
+                for(int k = 0;k < tableInfo.columnType[i].charLength;k++) {
+                    if(record[i].char_val.size()>=k+1) {
+                        memcpy(ptr + p, &record[i].char_val[k], sizeof(char));
+                    }
+                    else{
+                        char a = '\0';
+                        memcpy(ptr+p,&a,sizeof(char));
+                    }
+//                    memcpy(ptr+p,&record[i].char_val,sizeof(record[i].char_val.size()));
+                    p+=sizeof(char);
                 }
                 break;
             case SqlValueBaseType::MiniSQL_float:
@@ -273,31 +283,34 @@ void RecordManager::talbeTraversal(
         SqlValue indexValue = conditions[indexPos].val;
         int indexOffset = indexManager->search(tableInfo.tableName,tableInfo.columnName[indexPos],indexValue);
         Operator op = conditions[indexPos].op;
-        switch (op)
+        SqlValue* value = nullptr;
+        switch(op)
         {
             case Operator::NEQ: //!=
                 linearTraversal(tableInfo,conditions,consumer);
                 break;
-            case Operator::LEQ:
-                SqlValue value = getValue(tableInfo,indexOffset,indexPos);
+            case Operator::LEQ:{
+                value = getValue(tableInfo,indexOffset,indexPos);
                 while(indexOffset != -1){
-                    if(op == Operator::LT && value > indexValue) break;
-                    if(op == Operator::LEQ && value >= indexValue) break;
+                    if(op == Operator::LT && *value > indexValue) break;
+                    if(op == Operator::LEQ && *value >= indexValue) break;
                     indexTraversal(tableInfo,indexOffset,conditions,consumer);
                 }
                 break;
+            }
             case Operator::GT:
             case Operator::GEQ:
-                SqlValue value = geetValue(tableInfo,indexOffset,indexPos);
+                value = getValue(tableInfo,indexOffset,indexPos);
                 while(indexOffset != -1){
                     indexTraversal(tableInfo,indexOffset,conditions,consumer);
                     indexOffset = indexManager->searchNext(tableInfo.tableName,tableInfo.columnName[indexPos]);
                 }
+                break;
             case Operator::EQ: // ==
                 indexOffset = indexManager->search(tableInfo.tableName,tableInfo.columnName[indexPos],indexValue);
-                SqlValue value = getValue(tableInfo,indexOffset,indexPos);
+                value = getValue(tableInfo,indexOffset,indexPos);
                 while(indexOffset != -1){
-                    if(op == Operator::EQ && value != indexValue){
+                    if(op == Operator::EQ && *value != indexValue){
                         break;
                     }
                     indexTraversal(tableInfo,indexOffset,conditions,consumer);
@@ -305,11 +318,12 @@ void RecordManager::talbeTraversal(
                     value = getValue(tableInfo,indexOffset,indexPos);
                 }
                 break;
+            
         }
-
     }else{
         linearTraversal(tableInfo,conditions,consumer);
     }
+    return ;
 }
 
 void RecordManager::linearTraversal(
@@ -335,13 +349,12 @@ void RecordManager::linearTraversal(
             if(checkConditions(tableInfo,conditions,re)){
                 flag = consumer(blockPtr,offset,re);
                 if(!flag){
-                    freeRecord(re);
+                    //freeRecord(re);
                     return;
                 }
             }
-            freeRecord(re);
+            //freeRecord(re);
         }
-
     }
 }
 
@@ -364,7 +377,7 @@ void RecordManager::indexTraversal(
         consumer(blockPtr,offset,record);
     }
     if(record!=nullptr){
-        freeRecord(record);
+        //freeRecord(record);
     }
     return;
 }
@@ -391,24 +404,41 @@ std::shared_ptr<std::vector<SqlValue>> RecordManager::readRecord(TableInfo &tabl
     p+=sizeof(bool);
 
     auto records = std::make_shared<std::vector<SqlValue>>();
+    if(records == nullptr) std::cout<<"You sb"<<std::endl;
     for(int i = 0;i < tableInfo.columnCnt;i++){
-        unsigned int size = tableInfo.columnType[i].getSize();
-        char* content = new char(size);
-        memcpy(content,ptr+p,size);
-        // switch(tableInfo.columnType[i].type){
-        //     case SqlValueBaseType::MiniSQL_int:
-        //         records->operator[](records->size()-1).int_val = *content;
-        //         break;
-        //     case SqlValueBaseType::MiniSQL_char:
-        //         records->operator[](records->size()-1).char_val = *content;
-        //         break;
-        //     case SqlValueBaseType::MiniSQL_float:
-        //         records->operator[](records->size()-1).float_val = *content;
-        //         break;
-        // }
-        // records->operator[](records->size()-1).type = tableInfo.columnType[i].type;
-        records->emplace_back(tableInfo.columnType[i].type,*content);
-        p+=size;
+        int size = tableInfo.columnType[i].getSize();
+        switch(tableInfo.columnType[i].type){
+            case SqlValueBaseType::MiniSQL_int: {
+                int content;
+                memcpy(&content,ptr+p,size);
+                records->emplace_back(tableInfo.columnType[i].type,content);
+                p+=size;
+                break;
+            }
+            case SqlValueBaseType::MiniSQL_char:{
+                char temp[size];
+                //int tmp = 1;
+                //char temp;
+                for(int k = 0;k < tableInfo.columnType[i].charLength;k++){
+                    //memcpy(&temp,ptr+p,sizeof(char));
+                    memcpy(&temp[k],ptr+p,sizeof(char));
+                    p+=sizeof(char);
+                }
+                std::string content(temp);
+                //memcpy(&content,ptr+p,sizeof(char)*size);
+                records->emplace_back(tableInfo.columnType[i].type,content);
+                //ptr+=tmp;
+                break;
+            }
+            case SqlValueBaseType::MiniSQL_float: {
+                float content;
+                memcpy(&content,ptr+p,size);
+                records->emplace_back(tableInfo.columnType[i].type,content);
+                p+=size;
+                break;
+            }
+         }
+
     }
     return std::shared_ptr<std::vector<SqlValue>>(records);
 }
@@ -441,17 +471,17 @@ bool RecordManager::checkConditions(TableInfo &tableInfo,const std::vector<SqlCo
                 auto value = record->at(j);
                 switch(conditions[i].op){
                     case Operator::EQ:
-				    valid = value == conditions[i].val;
+				    valid = value == conditions[i].val; break;
 			        case Operator::NEQ:
-				    valid = value != conditions[i].val;
+				    valid = value != conditions[i].val; break;
 			        case Operator::LT:
-				    valid =  value < conditions[i].val;
+				    valid =  value < conditions[i].val; break;
 			        case Operator::LEQ:
-				    valid = value <= conditions[i].val;
+				    valid = value <= conditions[i].val; break;
 			        case Operator::GT:
-				    valid = value > conditions[i].val;
+				    valid = value > conditions[i].val; break;
 			        case Operator::GEQ:
-				    valid = value >= conditions[i].val;
+				    valid = value >= conditions[i].val; break;
                 }
             }
         }
@@ -496,7 +526,7 @@ void RecordManager::saveIndexes(TableInfo &tableInfo,const Tuple record,int offs
     }
 }
 
-SqlValue RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int indexPos)
+SqlValue* RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int indexPos)
 {
     const std::string fileName = tableInfo.tableName + ".def";
     int recordSize = getRecordSize(tableInfo.tableName);
@@ -506,5 +536,5 @@ SqlValue RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int indexP
     int offset = remain*recordSize;
     BYTE* blockPtr = bufferManager->getBlock(fileName,offset);
     auto record = readRecord(tableInfo,blockPtr+offset);
-    return record->at(indexPos);
+    return &record->at(indexPos);
 }
