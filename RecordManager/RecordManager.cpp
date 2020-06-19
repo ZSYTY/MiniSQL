@@ -6,7 +6,7 @@ bool NO_CATALOG_MANAGER =  true;
 // write to the file
 void RecordManager::createTable(const std::string &tableName)
 {
-    std::string fileName = tableName+".db";
+    std::string fileName = tableName+".def";
     // if table exist
     #ifdef MINISQL_CATALOG_MANAGER_H
     // if(NO_CATALOG_MANAGER && catalogManager->ifTableExist(tableName)){
@@ -22,7 +22,7 @@ void RecordManager::createTable(const std::string &tableName)
 // drop the file
 void RecordManager::dropTable(const std::string &tableName)
 {
-    std::string fileName = tableName+".db";
+    std::string fileName = tableName+".def";
     // table doesn't exist
     // if(NO_CATALOG_MANAGER &&!catalogManager->ifTableExist(tableName)){
     //     std::cout<<"Table doesn't exist."<<std::endl;
@@ -52,7 +52,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
 {
     int tailBlockID,flag = 1;
     size_t offset;
-    std::string fileName = tableName+".db";
+    std::string fileName = tableName+".def";
     //std::vector<Tuple> tuples = getTuples(tableName);
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
     
@@ -89,26 +89,38 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
         if(writeRecord(tableInfo,record,content)){
             std::cout<<"Successfully write record"<<std::endl;
             saveIndexes(tableInfo,record,blockNum);
+            bufferManager->setDirty(fileName,blockNum);
+            tableInfo.recordCnt++;
         }
         return true;
     }
     else{
         // Get last block
         BYTE* blockPtr = bufferManager->getBlock(fileName,blockNum-1);
-        int vacant;
-        unsigned int recordLen = getRecordSize(tableName); 
-        for(vacant = 0; blockPtr[vacant]!= '\0' && vacant< BlockSize;vacant++);
-        if(BlockSize - vacant >= recordLen){
-            writeRecord(tableInfo,record,blockPtr+vacant);
-            bufferManager->setDirty(fileName,blockNum-1);
-            saveIndexes(tableInfo,record,blockNum);
-            return true;
+        unsigned int recordLen = getRecordSize(tableName);
+        int recordsPerBlock = BlockSize / recordLen;
+        for(int i = 0;i < recordsPerBlock;i++){
+            size_t offset = recordLen * i;
+            auto re = readRecord(tableInfo,blockPtr+offset);
+            if(re == nullptr){
+                writeRecord(tableInfo,record,blockPtr+offset);
+                std::cout<<"Successfully write record."<<std::endl;
+                tableInfo.recordCnt++;
+                bufferManager->setDirty(fileName,blockNum-1);
+                // save Indexes
+                return true;
+            }
+            else{
+                //freeRecord(re);
+            }
         }
     }
     char* content = bufferManager->getBlock(fileName,blockNum,true);
     if(writeRecord(tableInfo,record,content)){
         std::cout<<"Successfully write record"<<std::endl;
+        bufferManager->setDirty(fileName,blockNum);
         saveIndexes(tableInfo,record,blockNum);
+        tableInfo.recordCnt++;
     }
     return true;
 }
@@ -120,7 +132,7 @@ bool RecordManager::deleteRecord(const std::string &tableName,const std::vector<
     int count = 0;
     bool flag = false,index_flag = false;
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
-
+    std::string fileName = tableInfo.tableName + ".def";
     // Check if table exist
     // if(!catalogManager->ifTableExist(tableName)){
     //     std::cout<<"Table doesn't exist."<<std::endl;
@@ -147,8 +159,11 @@ bool RecordManager::deleteRecord(const std::string &tableName,const std::vector<
         memcpy(content+offset,&valid,sizeof(bool));
         //block->dirty = true;
         //TODO setDirty
+        bufferManager->setDirty(fileName,offset);
         return true;
     });
+    bufferManager->flush();
+    std::cout<<"Delete record successfully"<<std::endl;
 
     return true;
 }
@@ -157,7 +172,7 @@ bool RecordManager::deleteRecord(const std::string &tableName,const std::vector<
 // remove all records in the table
 bool RecordManager::deleteRecord(const std::string &tableName)
 {
-    std::string fileName = tableName + ".db";
+    std::string fileName = tableName + ".def";
     bufferManager->removeFile(fileName);
     bufferManager->createFile(fileName);
     std::cout<<"Succesfully remove all the records in the table"<<std::endl;
@@ -183,25 +198,11 @@ bool RecordManager::selectRecord(const std::string &tableName, const std::vector
         for (int i = 0; i < conditions.size(); i++) {
 				for (int j = 0; j < tableInfo.columnCnt; j++) {
 					if (tableInfo.columnName[j] == conditions[i].columnName) {
-						 SqlValue* sqlValue = NULL;
-                         switch(tableInfo.columnType[i].type){
-                             
-                                case SqlValueBaseType::MiniSQL_int:
-                                    sqlValue = new SqlValue(SqlValueBaseType::MiniSQL_int,record->at(j).int_val);
-                                break;
-                                case SqlValueBaseType::MiniSQL_char:
-                                    sqlValue = new SqlValue(SqlValueBaseType::MiniSQL_char,record->at(j).char_val);
-                                break;
-                                case SqlValueBaseType::MiniSQL_float:
-                                    sqlValue = new SqlValue(SqlValueBaseType::MiniSQL_float,record->at(j).char_val);
-                                break;
-                        }
-						projection->push_back(*sqlValue);
-						break;
+                        result.push_back(*record);
+						//break;
 					}
 				}
-			}
-            result.push_back(*projection);
+			}    
         return true;
     });
 
@@ -290,11 +291,14 @@ void RecordManager::talbeTraversal(
                 linearTraversal(tableInfo,conditions,consumer);
                 break;
             case Operator::LEQ:{
+                int indexMov = searchHead(tableInfo.tableName,tableInfo.columnName[indexPos]);
                 value = getValue(tableInfo,indexOffset,indexPos);
-                while(indexOffset != -1){
+                while(indexOffset != indexOffset){
                     if(op == Operator::LT && *value > indexValue) break;
                     if(op == Operator::LEQ && *value >= indexValue) break;
                     indexTraversal(tableInfo,indexOffset,conditions,consumer);
+                    indexMov = searchNext(tableInfo.tableName,tableInfo.columnName);
+                    value = getValue(tableInfo,indexMov,indexPos);
                 }
                 break;
             }
@@ -307,7 +311,7 @@ void RecordManager::talbeTraversal(
                 }
                 break;
             case Operator::EQ: // ==
-                indexOffset = indexManager->search(tableInfo.tableName,tableInfo.columnName[indexPos],indexValue);
+                indexOffset = indexManager->searchEqual(tableInfo.tableName,tableInfo.columnName[indexPos],indexValue);
                 value = getValue(tableInfo,indexOffset,indexPos);
                 while(indexOffset != -1){
                     if(op == Operator::EQ && *value != indexValue){
@@ -331,7 +335,7 @@ void RecordManager::linearTraversal(
         const std::vector<SqlCondition>& conditions,
         std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 ){
-    std::string fileName = tableInfo.tableName+".db";
+    std::string fileName = tableInfo.tableName+".def";
     unsigned int recordLen = getRecordSize(tableInfo.tableName);
     int recordsPerBlock = BlockSize/recordLen;
     int blockNum = bufferManager->getBlockCnt(fileName);
@@ -365,7 +369,7 @@ void RecordManager::indexTraversal(
         std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
     )
 {
-    std::string fileName = tableInfo.tableName + ".db";
+    std::string fileName = tableInfo.tableName + ".def";
     int recordSize = getRecordSize(tableInfo.tableName);
     int recordsPerBlock = BlockSize / recordSize;
     int blockIndex = indexOffset / recordsPerBlock;
