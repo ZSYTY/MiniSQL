@@ -86,7 +86,16 @@ public:
         }
     }
 
+    void indexTraversal(
+        TableInfo& tableInfo,
+        IndexManager& index,
+        std::vector<SqlCondition> conditions,
+        std::function<bool(Block*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+    );
+
     void freeRecord(std::shared_ptr<std::vector<SqlValue>> record);
+
+    void saveIndexes(TableInfo &tableInfo,const Tuple record,int offset);
 
 };
 

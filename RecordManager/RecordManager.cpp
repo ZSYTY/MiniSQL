@@ -72,7 +72,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
     if(!tableInfo.primaryKeyName.empty()){
         bool unique = true;
         std::vector<SqlCondition> conditions;
-        talbeTraversal(tableInfo,conditions,[&](Block* block,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
+        talbeTraversal(tableInfo,conditions,[&](BYTE* content,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
             unique = false;
             return false;
         });
@@ -85,14 +85,11 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
     //Insert
     int blockNum = bufferManager->getBlockCnt(fileName);
     if(blockNum == 0){
-        Block* newBlock = NULL;
-        newBlock = (Block*)malloc(sizeof(struct Block));
-        newBlock->filename = tableName+".db";
-        bufferManager->setDirty(fileName,blockNum);
-        memset(newBlock->content,0,BlockSize);
-        if(writeRecord(record,newBlock->content))
+        char* content = bufferManager->getBlock(fileName,blockNum,true);
+        if(writeRecord(record,content)){
             std::cout<<"Successfully write record"<<std::endl;
-        // updateIndexes();
+            saveIndexes(tableInfo,record,blockNum);
+        }
         return true;
     }
     else{
@@ -100,22 +97,16 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
         BYTE* blockPtr = bufferManager->getBlock(fileName,blockNum-1);
         int vacant;
         unsigned int recordLen = getRecordSize(tableName); 
-        for(vacant = 0; blockPtr[vacant]!= '\0' < BlockSize;vacant++);
+        for(vacant = 0; blockPtr[vacant]!= '\0' && vacant< BlockSize;vacant++);
         if(BlockSize - vacant >= recordLen){
             writeRecord(record,blockPtr+vacant);
             bufferManager->setDirty(fileName,blockNum-1);
-            // Update the index
+            saveIndexes(tableInfo,record,blockNum);
             return true;
         }
     }
-    // New block is needed
-    Block* newBlock = NULL;
-    newBlock = (Block*)malloc(sizeof(struct Block));
-    memset(newBlock->content,0,BlockSize);
-    newBlock->filename = tableName+".db";
-    newBlock->dirty = true;
-    //bufferManager->setDirty(fileName,blockNum);
-    writeRecord(record,newBlock->content);
+    
+
     return true;
 }
 
@@ -148,10 +139,11 @@ bool RecordManager::deleteRecord(const std::string &tableName,const std::vector<
     }
 
     // Delete
-    talbeTraversal(tableInfo,conditions,[&](Block* block,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
+    talbeTraversal(tableInfo,conditions,[&](BYTE* content,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
         bool valid = false;
-        memcpy(block->content+offset,&valid,sizeof(bool));
-        block->dirty = true;
+        memcpy(content+offset,&valid,sizeof(bool));
+        //block->dirty = true;
+        //TODO setDirty
         return true;
     });
 
@@ -183,7 +175,7 @@ bool RecordManager::selectRecord(const std::string &tableName, const std::vector
     // get tuples
     std::vector<Tuple> result;
 
-    talbeTraversal(tableInfo,conditions,[&](Block* block,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
+    talbeTraversal(tableInfo,conditions,[&](BYTE* content,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
         auto projection = std::make_shared<std::vector<SqlValue>>();
         for (int i = 0; i < conditions.size(); i++) {
 				for (int j = 0; j < tableInfo.columnCnt; j++) {
@@ -226,6 +218,7 @@ bool RecordManager::checkType(TableInfo &tableInfo,const Tuple record)
     return true;
 }
 
+
 bool RecordManager::writeRecord(const Tuple record,char* ptr)
 {
     int p = 0;
@@ -235,18 +228,66 @@ bool RecordManager::writeRecord(const Tuple record,char* ptr)
     // write into records
     p+= sizeof(bool);
     for(int i = 0;i < record.size();i++){
-        memcpy(ptr+p,&record[i],sizeof(record[i].type));
+        switch(record[i].type){
+            case SqlValueBaseType::MiniSQL_int:
+                memcpy(ptr+p,&record[i].int_val,sizeof(record[i].type));
+                p+=sizeof(record[i].type);
+                break;
+            case SqlValueBaseType::MiniSQL_char:
+                for(int k = 0;k < record[i].char_val.size();k++) {
+                    memcpy(ptr + p, &record[i].char_val[k], sizeof(record[i].type));
+                    p += sizeof(record[i].char_val[k]);
+                }
+                break;
+            case SqlValueBaseType::MiniSQL_float:
+                memcpy(ptr+p,&record[i].float_val,sizeof(record[i].type));
+                p+=sizeof(record[i].type);
+                break;
+        }
+
     }
     return true;
 }
 
+
 void RecordManager::talbeTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
-        std::function<bool(Block*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 ){
-    IndexInfo* index = NULL;
-    if(index){
+    int indexPos;
+    for(int i = 0;i < conditions.size();i++)
+    {
+        int flag = 0;
+        // Search the id of only one condition
+        for(int j = 0;j < tableInfo.columnCnt;j++){
+            if(conditions[i].columnName == tableInfo.columnName[j]){
+                flag = 1;
+                indexPos = i;
+            }
+        }
+        if(flag == 1) break;
+    }
+    // Use Index
+    if(tableInfo.indexes.size() != 0){
+
+        SqlValue indexValue = conditions[indexPos].val;
+        Operator op = conditions[indexPos].op;
+        
+        switch (op)
+        {
+            case Operator::NEQ: //!=
+                linearTraversal(tableInfo,conditions,consumer);
+                break;
+            case Operator::LEQ:{
+                break;
+            }
+            case Operator::GT:
+            case Operator::GEQ:
+            case Operator::EQ: // ==
+                /* code */
+                break;
+        }
 
     }else{
         linearTraversal(tableInfo,conditions,consumer);
@@ -256,7 +297,7 @@ void RecordManager::talbeTraversal(
 void RecordManager::linearTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
-        std::function<bool(Block*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 ){
     std::string fileName = tableInfo.tableName+".db";
     unsigned int recordLen = getRecordSize(tableInfo.tableName);
@@ -266,16 +307,15 @@ void RecordManager::linearTraversal(
 
     for(int i = 0;i < blockNum;i++){
         BYTE* blockPtr = bufferManager->getBlock(fileName,i);
-        Block* block = (struct Block*)blockPtr;
         for(int j = 0;j < recordsPerBlock;j++){
             size_t offset = recordLen * j;
-            BYTE* ptr = block->content + offset;
+            BYTE* ptr = blockPtr + offset;
             auto re = readRecord(tableInfo,ptr);
             if(re == NULL){
                 continue;
             }
             if(checkConditions(tableInfo,conditions,re)){
-                flag = consumer(block,offset,re);
+                flag = consumer(blockPtr,offset,re);
                 if(!flag){
                     freeRecord(re);
                     return;
@@ -285,6 +325,30 @@ void RecordManager::linearTraversal(
         }
 
     }
+}
+
+void RecordManager::indexTraversal(
+        TableInfo& tableInfo,
+        int indexOffset,
+        std::vector<SqlCondition> conditions,
+        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+    )
+{
+    std::string fileName = tableInfo.tableName + ".db";
+    int recordSize = getRecordSize(tableInfo.tableName);
+    int recordsPerBlock = BlockSize / recordSize;
+    int blockIndex = indexOffset / recordsPerBlock;
+    int remain = indexOffset % recordsPerBlock;
+    int offset = remain*recordSize;
+    BYTE* blockPtr = bufferManager->getBlock(fileName,blockIndex,false);
+    auto record = readRecord(tableInfo,blockPtr+offset);
+    if(record!=nullptr && checkConditions(tableInfo,conditions,record)){
+        consumer(blockPtr,offset,record);
+    }
+    if(record!=nullptr){
+        freeRecord(record);
+    }
+    return;
 }
 
 unsigned int RecordManager::getRecordSize(const std::string tableName)
@@ -403,5 +467,13 @@ void RecordManager::printResult(const std::vector<Tuple> &results)
             std::cout<<" ";
         }
         std::cout<<std::endl;
+    }
+}
+
+void RecordManager::saveIndexes(TableInfo &tableInfo,const Tuple record,int offset)
+{
+    std::string fileName = tableInfo.tableName + ".db";
+    for(int i = 0;i < tableInfo.indexes.size();i++){
+        indexManager->insertKey(fileName,record,offset);
     }
 }
