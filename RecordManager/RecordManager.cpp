@@ -270,22 +270,40 @@ void RecordManager::talbeTraversal(
     }
     // Use Index
     if(tableInfo.indexes.size() != 0){
-
         SqlValue indexValue = conditions[indexPos].val;
+        int indexOffset = indexManager->search(tableInfo.tableName,tableInfo.columnName[indexPos],indexValue);
         Operator op = conditions[indexPos].op;
-        
         switch (op)
         {
             case Operator::NEQ: //!=
                 linearTraversal(tableInfo,conditions,consumer);
                 break;
-            case Operator::LEQ:{
+            case Operator::LEQ:
+                SqlValue value = getValue(tableInfo,indexOffset,indexPos);
+                while(indexOffset != -1){
+                    if(op == Operator::LT && value > indexValue) break;
+                    if(op == Operator::LEQ && value >= indexValue) break;
+                    indexTraversal(tableInfo,indexOffset,conditions,consumer);
+                }
                 break;
-            }
             case Operator::GT:
             case Operator::GEQ:
+                SqlValue value = geetValue(tableInfo,indexOffset,indexPos);
+                while(indexOffset != -1){
+                    indexTraversal(tableInfo,indexOffset,conditions,consumer);
+                    indexOffset = indexManager->searchNext(tableInfo.tableName,tableInfo.columnName[indexPos]);
+                }
             case Operator::EQ: // ==
-                /* code */
+                indexOffset = indexManager->search(tableInfo.tableName,tableInfo.columnName[indexPos],indexValue);
+                SqlValue value = getValue(tableInfo,indexOffset,indexPos);
+                while(indexOffset != -1){
+                    if(op == Operator::EQ && value != indexValue){
+                        break;
+                    }
+                    indexTraversal(tableInfo,indexOffset,conditions,consumer);
+                    indexOffset =  indexManager->searchNext(tableInfo.tableName,tableInfo.columnName[indexPos]);
+                    value = getValue(tableInfo,indexOffset,indexPos);
+                }
                 break;
         }
 
@@ -472,8 +490,21 @@ void RecordManager::printResult(const std::vector<Tuple> &results)
 
 void RecordManager::saveIndexes(TableInfo &tableInfo,const Tuple record,int offset)
 {
-    std::string fileName = tableInfo.tableName + ".db";
+    std::string fileName = tableInfo.tableName + ".def";
     for(int i = 0;i < tableInfo.indexes.size();i++){
         indexManager->insertKey(fileName,record,offset);
     }
+}
+
+SqlValue RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int indexPos)
+{
+    const std::string fileName = tableInfo.tableName + ".def";
+    int recordSize = getRecordSize(tableInfo.tableName);
+    int recordsPerBlock = BlockSize / recordSize;
+    int blockIndex = indexOffset / recordsPerBlock;
+    int remain = indexOffset % recordsPerBlock;
+    int offset = remain*recordSize;
+    BYTE* blockPtr = bufferManager->getBlock(fileName,offset);
+    auto record = readRecord(tableInfo,blockPtr+offset);
+    return record->at(indexPos);
 }

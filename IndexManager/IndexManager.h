@@ -26,11 +26,11 @@ public:
 
     bool dropIndex(const std::string &indexName);
 
-    int search(const std::string &filename, const Tuple &tuple);
+    int search(const std::string &tableName, const std::string columnName,SqlValue sqlValue);
 
-    int searchHead(const std::string &filename, SqlValueBaseType type);
+    int searchHead(const std::string &tableName, SqlValueBaseType type);
 
-    int searchNext(const std::string &filename, SqlValueBaseType type);
+    int searchNext(const std::string &tableName, SqlValueBaseType type);
 
     bool insertKey(const std::string &filename, const Tuple &tuple, int offset);
 

@@ -41,9 +41,9 @@ private:
 
     std::shared_ptr<std::vector<SqlValue>> readRecord(TableInfo &tableInfo,BYTE* ptr);
 
-    
-
     void printResult(const std::vector<Tuple> &results);
+
+    SqlValue* getValue(TableInfo &tableInfo,int indexOffset);
 
 public:
     RecordManager(BufferManager *_bufferManager, IndexManager *_indexManager, CatalogManager *_catalogManager): bufferManager(_bufferManager), indexManager(_indexManager),catalogManager(_catalogManager) {};
@@ -68,17 +68,17 @@ public:
     void talbeTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
-        std::function<bool(Block*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
     );
     
     void linearTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
-        std::function<bool(Block*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
     );
 
-    template <class SqlValueBaseType>
-    inline SqlValueBaseType getAsType(SqlValue* sqlValue){
+    template <class T>
+    inline T getAsType(SqlValue* sqlValue){
         switch(sqlValue->type){
             case SqlValueBaseType::MiniSQL_int: return sqlValue->int_val; break;
             case SqlValueBaseType::MiniSQL_char: return sqlValue->char_val; break;
@@ -88,9 +88,9 @@ public:
 
     void indexTraversal(
         TableInfo& tableInfo,
-        IndexManager& index,
+        int indexOffset,    // This offset marks the index of the record in the table
         std::vector<SqlCondition> conditions,
-        std::function<bool(Block*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
     );
 
     void freeRecord(std::shared_ptr<std::vector<SqlValue>> record);
