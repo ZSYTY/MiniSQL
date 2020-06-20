@@ -10,8 +10,13 @@
 
 #include "../BufferManager/BufferManager.h"
 #include "../Common/Common.h"
+<<<<<<< HEAD
 #include<iostream>
 
+=======
+#include <iostream>
+#include <sstream>
+>>>>>>> 2e7d5a5494d742f5011bb69afaba3e2e52fad845
 using namespace MiniSQL;
 
 class CatalogManager
@@ -20,14 +25,18 @@ private:
     /* data */
     BufferManager *bufferManager;
 public:
-    CatalogManager(BufferManager *_bufferManager): bufferManager(_bufferManager) {};
-    ~CatalogManager();
+    explicit CatalogManager(BufferManager *_bufferManager) : bufferManager(
+            _bufferManager) {};
+
+    ~CatalogManager() = default;
 
     bool ifTableExist(const std::string &tableName);
 
     TableInfo getTableInfo(const std::string &tableName);
 
-    bool createTable(const std::string &tableName, const std::vector<std::pair<std::string, SqlValueType>> &schema, const std::string &primaryKeyName);
+    bool createTable(const std::string &tableName,
+                     const std::vector<std::pair<std::string, SqlValueType>> &schema,
+                     const std::string &primaryKeyName);
 
     bool deleteTable(const std::string &tableName);
 
