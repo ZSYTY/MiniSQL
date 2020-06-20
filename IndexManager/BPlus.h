@@ -5,6 +5,8 @@
  * @Last Modified time: 2020-06-20 01:49:06
  */
 
+#ifndef MINISQL_B_PLUS_TREE_H
+#define MINISQL_B_PLUS_TREE_H
 
 #include <vector>
 #include <string>
@@ -408,3 +410,5 @@ public:
     //     }
     // }
 };
+
+#endif
