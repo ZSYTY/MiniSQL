@@ -13,7 +13,7 @@ bool CatalogManager::deleteTable(const std::string &tableName)
     }
     // Delete related files
     bufferManager->removeFile(tableName + ".def");
-    bufferManager->removeFile(tableName + ".data"); // TODO 后缀名是什么
+    bufferManager->removeFile(tableName + ".db");
     // Delete related indexes
     if (!bufferManager->ifFileExists("index"))
     {
@@ -343,4 +343,19 @@ bool CatalogManager::deleteIndex(const std::string &indexName)
     }
 
     return false;
+}
+
+void CatalogManager::updateTableInfo(const std::string &tableName, bool isInsert, int num)
+{
+    auto info = bufferManager->getBlock(tableName + ".def", 0, true);
+    int *cnt = (int *) info;
+    int record_cnt = *(cnt + 1);
+    if (isInsert)
+    {
+        *(cnt + 1) = record_cnt + 1; // recordCnt
+    }
+    else
+    {
+        *(cnt + 1) = record_cnt - num;
+    }
 }
