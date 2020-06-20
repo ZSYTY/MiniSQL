@@ -331,14 +331,14 @@ void RecordManager::talbeTraversal(
                 break;
             }
             case Operator::LEQ:{
-                int indexOffset = indexManager->searchHead(tableInfo.tableName,tableInfo.columnName[indexPos]);
+                int indexMov = indexManager->searchHead(tableInfo.tableName,tableInfo.columnName[indexPos]);
                 value = getValue(tableInfo,indexOffset,indexPos);
-                while(indexOffset != -1){
+                while(indexMov <= indexOffset){
                     if(op == Operator::LT && *value > indexValue) break;
                     if(op == Operator::LEQ && *value >= indexValue) break;
                     indexTraversal(tableInfo,indexOffset,conditions,consumer);
-                    indexOffset = indexManager->searchNext(tableInfo.tableName,tableInfo.columnName[indexPos]);
-                    value = getValue(tableInfo,indexOffset,indexPos);
+                    indexMov = indexManager->searchNext(tableInfo.tableName,tableInfo.columnName[indexPos]);
+                    value = getValue(tableInfo,indexMov,indexPos);
                 }
                 break;
             }
