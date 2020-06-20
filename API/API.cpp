@@ -7,6 +7,7 @@ bool API::createTable(const std::string &tableName,
 {
     APISingleton &apiSingleton = API::APISingleton::getInstance();
     CatalogManager *cm = apiSingleton.getCatalogManager();
+    RecordManager *rm = apiSingleton.getRecordManager();
 
     // If there exists a table with the same name
     if (cm->ifTableExist(tableName))
@@ -19,17 +20,18 @@ bool API::createTable(const std::string &tableName,
     {
         for (auto &item : schema)
         {
-            // If there exists a valid column
-            if (item.first == primaryKeyName)
-            {
-                std::cout << "Invalid primary key name" << std::endl;
-                return false;
-            }
+            // // If there exists a valid column
+            // if (item.first == primaryKeyName)
+            // {
+            //     std::cout << "Invalid primary key name" << std::endl;
+            //     return false;
+            // }
         }
 
     }
 
     cm->createTable(tableName, schema, primaryKeyName);
+    rm->createTable(tableName);
 
     return true;
 }

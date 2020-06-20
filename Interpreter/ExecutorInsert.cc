@@ -45,7 +45,7 @@ void Interpreter::execute_insert(const sqltoast::insert_statement_t *stmt)
             values.push_back(*val_final);
         }
 
-        // API::insertTuple(table, values);
+        API::insertTuple(table, values);
         std::cout << "Inserting into `" << table << "` (";
         for(const auto &val : values) {
             // FIXME non-int types are not printed

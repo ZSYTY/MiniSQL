@@ -53,9 +53,9 @@ namespace API
         APISingleton()
         {
             auto *bufferManager = new BufferManager();
-            indexManager = new IndexManager(bufferManager);
-            recordManager = new RecordManager(bufferManager, indexManager);
             catalogManager = new CatalogManager(bufferManager);
+            indexManager = new IndexManager(bufferManager, catalogManager);
+            recordManager = new RecordManager(bufferManager, indexManager, catalogManager);
         }
 
         RecordManager *recordManager = nullptr;

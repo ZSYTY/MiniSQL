@@ -47,7 +47,7 @@ void Interpreter::execute_select(const sqltoast::select_statement_t *stmt)
     }
 
     // TODO stub
-    // API::select(table_name, where_cond);
+    API::select(table_name, where_cond);
     std::cout << "Selecting * from " << table_name;
     if(!where_cond.empty()) {
         std::cout << " where ";

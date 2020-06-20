@@ -114,7 +114,7 @@ void Interpreter::execute_create_table(const sqltoast::create_table_statement_t 
         }
     }
 
-    // API::createTable(table_name, cols, primary_key);
+    API::createTable(table_name, cols, primary_key);
     std::cout << "Creating table " << table_name << std::endl;
     for(const auto &col : cols) {
         std::cout << " - " << col.first << ' ' << (int) col.second.type;

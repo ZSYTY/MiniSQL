@@ -15,6 +15,7 @@ src = [
     'BufferManager/BufferManager.cpp',
     'CatalogManager/CatalogManager.cpp',
     'RecordManager/RecordManager.cpp',
+    'API/API.cpp',
     'main.cpp'
 ]
 

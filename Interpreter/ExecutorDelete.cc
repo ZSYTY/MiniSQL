@@ -19,7 +19,7 @@ void Interpreter::execute_delete(const sqltoast::delete_statement_t *stmt)
         }
     }
 
-    // API::deleteTuple(table_name, where_cond);
+    API::deleteTuple(table_name, where_cond);
     std::cout << "Deleting from " << table_name;
     if(!where_cond.empty()) {
         std::cout << " where ";
