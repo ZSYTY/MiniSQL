@@ -41,7 +41,7 @@ private:
 
     std::shared_ptr<std::vector<SqlValue>> readRecord(TableInfo &tableInfo,BYTE* ptr);
 
-    void printResult(const std::vector<Tuple> &results);
+    void printResult(TableInfo& tableInfo,const std::vector<Tuple> &results);
 
     SqlValue* getValue(TableInfo &tableInfo,int indexOffset,int indexPos);
 
@@ -55,7 +55,7 @@ public:
 
     bool insertRecord(const std::string &tableName,const std::vector<Tuple> records);
 
-    bool deleteRecord(const std::string &tableName, const std::vector<SqlCondition> &conditions);
+    int deleteRecord(const std::string &tableName, const std::vector<SqlCondition> &conditions);
 
     bool deleteRecord(const std::string &tableName);
 
