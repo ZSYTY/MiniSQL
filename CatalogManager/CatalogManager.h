@@ -10,13 +10,9 @@
 
 #include "../BufferManager/BufferManager.h"
 #include "../Common/Common.h"
-<<<<<<< HEAD
-#include<iostream>
 
-=======
 #include <iostream>
 #include <sstream>
->>>>>>> 2e7d5a5494d742f5011bb69afaba3e2e52fad845
 using namespace MiniSQL;
 
 class CatalogManager
@@ -33,6 +29,8 @@ public:
     bool ifTableExist(const std::string &tableName);
 
     TableInfo getTableInfo(const std::string &tableName);
+
+    void updateTableInfo(const std::string &tableName, bool isInsert, int num = 1);
 
     bool createTable(const std::string &tableName,
                      const std::vector<std::pair<std::string, SqlValueType>> &schema,

@@ -13,7 +13,7 @@ bool CatalogManager::deleteTable(const std::string &tableName)
     }
     // Delete related files
     bufferManager->removeFile(tableName + ".def");
-    bufferManager->removeFile(tableName + ".data"); // TODO 后缀名是什么
+    bufferManager->removeFile(tableName + ".db");
     // Delete related indexes
     if (!bufferManager->ifFileExists("index"))
     {
@@ -65,123 +65,107 @@ bool CatalogManager::deleteTable(const std::string &tableName)
 
 TableInfo CatalogManager::getTableInfo(const std::string &tableName)
 {
-//    if (!ifTableExist(tableName))
-//    {
-//        std::cerr << "No such table!" << std::endl;
-//    }
-//    TableInfo tableInfo;
-//    tableInfo.tableName = tableName;
-//    auto info = bufferManager->getBlock(tableName + ".def", 0);
-////    struct TableInfo {
-////        int columnCnt, recordCnt;
-////        std::string tableName;
-////        std::string primaryKeyName;
-////        std::vector<std::string> columnName;
-////        std::vector<SqlValueType> columnType;
-////        std::vector<IndexInfo> indexes;
-////    };
-//    // cnt 用来得到两个 int 的值
-//    int *cnt = (int *) info;
-//    tableInfo.columnCnt = *cnt;
-//    tableInfo.recordCnt = *(cnt + 1);
-//
-//    std::stringstream ss; // 用于操作字符串
-//
-//    // name 用来得到 primaryKeyName
-//    BYTE *primary_key_name = info + 2 * sizeof(int);
-//    ss << primary_key_name;
-//    ss >> tableInfo.primaryKeyName;
-//    primary_key_name += tableInfo.primaryKeyName.size() + 1; //跳过 '\0'
-//
-//    // columnInfo 用来得到 column 的信息
-//    BYTE *columnInfo = primary_key_name;
-//    for (int i = 0; i < tableInfo.columnCnt; ++i)
-//    {
-//        // 开始读取 columnName
-//        ss.clear();
-//        ss << columnInfo;
-//        std::string cName;
-//        ss >> cName;
-//        tableInfo.columnName.push_back(cName);
-//        columnInfo += cName.size() + 1; //跳过 '\0'
-//
-//        // 开始读取 columnType
-//        auto svbType = (SqlValueBaseType) (*columnInfo);
-//        columnInfo += sizeof(SqlValueBaseType);
-//
-//        auto is_primary = (bool) (*columnInfo);
-//        columnInfo += sizeof(bool);
-//
-//        auto is_unique = (bool) (*columnInfo);
-//        columnInfo += sizeof(bool);
-//
-//        auto char_length = (short) (*columnInfo);
-//        columnInfo += sizeof(short);
-//
-//        SqlValueType svt(svbType, is_primary, is_unique, char_length);
-//        tableInfo.columnType.push_back(svt);
-//    }
-//
-//    int block_cnt = bufferManager->getBlockCnt("index");
-//    /*
-//    struct IndexInfo {
-//    std::string indexName;
-//    std::string tableName;
-//    std::string columnName;
+    if (!ifTableExist(tableName))
+    {
+        std::cerr << "No such table!" << std::endl;
+    }
+    TableInfo tableInfo;
+    tableInfo.tableName = tableName;
+    auto info = bufferManager->getBlock(tableName + ".def", 0);
+//    struct TableInfo {
+//        int columnCnt, recordCnt;
+//        std::string tableName;
+//        std::string primaryKeyName;
+//        std::vector<std::string> columnName;
+//        std::vector<SqlValueType> columnType;
+//        std::vector<IndexInfo> indexes;
 //    };
-//    */
-//
-//    for (int i = 0; i < block_cnt; ++i)
-//    {
-//        auto ptr2index = bufferManager->getBlock("index", i);
-//        // 当 *ptr2index = '\0' 说明该 index 已被删除
-//        std::string index_name, table_name, column_name;
-//        for (int j = 0; j < 32; ++j)
-//        {
-//            if (*ptr2index != '\0')
-//            {
-//                auto index_info = ptr2index;
-//                ss.clear();
-//                ss << index_info;
-//                ss >> index_name;
-//                index_info += index_name.size() + 1;
-//
-//                ss.clear();
-//                ss << index_info;
-//                ss >> table_name;
-//                index_info += table_name.size() + 1;
-//
-//                ss.clear();
-//                ss << index_info;
-//                ss >> column_name;
-//
-//                if (table_name == tableName)
-//                {
-//                    IndexInfo indexInfo(index_name, table_name, column_name);
-//                    tableInfo.indexes.push_back(indexInfo);
-//                }
-//            }
-//            ptr2index += 128;
-//        }
-//    }
-    TableInfo tableInfo1;
+    // cnt 用来得到两个 int 的值
+    int *cnt = (int *) info;
+    tableInfo.columnCnt = *cnt;
+    tableInfo.recordCnt = *(cnt + 1);
 
-    tableInfo1.tableName = "Test";
-    tableInfo1.columnCnt = 3;
-//    tableInfo1.columnType[0].type = SqlValueBaseType::MiniSQL_char;
-//    tableInfo1.columnType[1].type = SqlValueBaseType::MiniSQL_int;
-//    tableInfo1.columnType[2].type = SqlValueBaseType::MiniSQL_float;
-    SqlValueType *sqlValueType1 = new SqlValueType(SqlValueBaseType::MiniSQL_char,false,false,10);
-    SqlValueType *sqlValueType2 = new SqlValueType(SqlValueBaseType::MiniSQL_int,false,false,0);
-    SqlValueType *sqlValueType3 = new SqlValueType(SqlValueBaseType::MiniSQL_float,false,false,0);
-    tableInfo1.columnType.push_back(*sqlValueType1);
-    tableInfo1.columnType.push_back(*sqlValueType2);
-    tableInfo1.columnType.push_back(*sqlValueType3);
-    tableInfo1.columnName.emplace_back("Name");
-    tableInfo1.columnName.emplace_back("Number");
-    tableInfo1.columnName.emplace_back("Score");
-    tableInfo1.recordCnt = 5;
-    return tableInfo1;
+    std::stringstream ss; // 用于操作字符串
+
+    // name 用来得到 primaryKeyName
+    BYTE *primary_key_name = info + 2 * sizeof(int);
+    ss << primary_key_name;
+    ss >> tableInfo.primaryKeyName;
+    primary_key_name += tableInfo.primaryKeyName.size() + 1; //跳过 '\0'
+
+    // columnInfo 用来得到 column 的信息
+    BYTE *columnInfo = primary_key_name;
+    for (int i = 0; i < tableInfo.columnCnt; ++i)
+    {
+        // 开始读取 columnName
+        ss.clear();
+        ss << columnInfo;
+        std::string cName;
+        ss >> cName;
+        tableInfo.columnName.push_back(cName);
+        columnInfo += cName.size() + 1; //跳过 '\0'
+
+        // 开始读取 columnType
+        auto svbType = (SqlValueBaseType) (*columnInfo);
+        columnInfo += sizeof(SqlValueBaseType);
+
+        auto is_primary = (bool) (*columnInfo);
+        columnInfo += sizeof(bool);
+
+        auto is_unique = (bool) (*columnInfo);
+        columnInfo += sizeof(bool);
+
+        auto char_length = (short) (*columnInfo);
+        columnInfo += sizeof(short);
+
+        SqlValueType svt(svbType, is_primary, is_unique, char_length);
+        tableInfo.columnType.push_back(svt);
+    }
+
+    int block_cnt = bufferManager->getBlockCnt("index");
+    /*
+    struct IndexInfo {
+    std::string indexName;
+    std::string tableName;
+    std::string columnName;
+    };
+    */
+
+    for (int i = 0; i < block_cnt; ++i)
+    {
+        auto ptr2index = bufferManager->getBlock("index", i);
+        // 当 *ptr2index = '\0' 说明该 index 已被删除
+        std::string index_name, table_name, column_name;
+        for (int j = 0; j < 32; ++j)
+        {
+            if (*ptr2index != '\0')
+            {
+                auto index_info = ptr2index;
+                ss.clear();
+                ss << index_info;
+                ss >> index_name;
+                index_info += index_name.size() + 1;
+
+                ss.clear();
+                ss << index_info;
+                ss >> table_name;
+                index_info += table_name.size() + 1;
+
+                ss.clear();
+                ss << index_info;
+                ss >> column_name;
+
+                if (table_name == tableName)
+                {
+                    IndexInfo indexInfo(index_name, table_name, column_name);
+                    tableInfo.indexes.push_back(indexInfo);
+                }
+            }
+            ptr2index += 128;
+        }
+    }
+
+    return tableInfo;
 }
 
 // 每块固定存放 32 条index，每个 index 有 128 byte
@@ -359,4 +343,19 @@ bool CatalogManager::deleteIndex(const std::string &indexName)
     }
 
     return false;
+}
+
+void CatalogManager::updateTableInfo(const std::string &tableName, bool isInsert, int num)
+{
+    auto info = bufferManager->getBlock(tableName + ".def", 0, true);
+    int *cnt = (int *) info;
+    int record_cnt = *(cnt + 1);
+    if (isInsert)
+    {
+        *(cnt + 1) = record_cnt + 1; // recordCnt
+    }
+    else
+    {
+        *(cnt + 1) = record_cnt - num;
+    }
 }
