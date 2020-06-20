@@ -118,7 +118,7 @@ int IndexManager::searchNext(const std::string &tableName, const std::string &co
     }
 }
 
-int IndexManager::serachEqual(const std::string &tableName, const std::string &columnName, const SqlValue &value) {
+int IndexManager::searchEqual(const std::string &tableName, const std::string &columnName, const SqlValue &value) {
     auto T = getColomnType(tableName, columnName);
     int cur = -1;
     SqlValue curValue;
