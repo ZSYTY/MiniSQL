@@ -82,6 +82,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
     // Check Complete
 
     //Insert
+    int indexOffset = -1;
     int blockNum = bufferManager->getBlockCnt(fileName);
     if(blockNum == 0){
         char* contentPtr = bufferManager->getBlock(fileName,blockNum,true);
@@ -90,10 +91,12 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
         if(writeRecord(tableInfo,record,contentPtr)){
             std::cout<<"Successfully write record."<<std::endl;
             tableInfo.recordCnt++;
+            saveIndexes(tableInfo,record,0);
+            return true;
         }
         // updateIndexes();
-        saveIndexes(tableInfo,record,blockNum);
-        return true;
+        std::cerr<<"RecordManager::insertOneRecord: error insert the first block"<<std::endl;
+        return false;     
     }
     else{
         // Get last block
@@ -109,23 +112,32 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
                 tableInfo.recordCnt++;
                 bufferManager->setDirty(fileName,blockNum-1);
                 // save Indexes
-                saveIndexes(tableInfo,record,blockNum-1);
+                indexOffset = recordsPerBlock*(blockNum - 1) + i;
+                saveIndexes(tableInfo,record,indexOffset);
                 return true;
             }
             else{
                 //freeRecord(re);
             }
         }
+        std::cerr<<"RecordManager::insertOneRecord: error insert record at the tail"<<std::endl;
+        return false;
     }
     char* contentPtr = bufferManager->getBlock(fileName,blockNum,true);
+    unsigned int recordLen = getRecordSize(tableName);
+    int recordsPerBlock = BlockSize / recordLen;
+    indexOffset = recordsPerBlock * blockNum + 1;
     memset(contentPtr,0,BlockSize);
     bufferManager->setDirty(fileName,blockNum);
     if(writeRecord(tableInfo,record,contentPtr)){
         std::cout<<"Successfully write record."<<std::endl;
         tableInfo.recordCnt++;
+        saveIndexes(tableInfo,record,indexOffset);
+        return true;
     }
     // updateIndexes();
-    return true;
+    std::cerr<<"RecordManager::insertOneRecord: error insert record at the tail"<<std::endl;
+    return false;
 }
 
 // Remove records which satisfy conditions
