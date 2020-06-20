@@ -55,7 +55,7 @@ public:
 
     int search(const std::string &tableName, const std::string &columnName, const SqlValue &value);
 
-    int serachEqual(const std::string &tableName, const std::string &columnName, const Tuple &tuple);
+    int serachEqual(const std::string &tableName, const std::string &columnName, const SqlValue &tuple);
 
     int searchHead(const std::string &tableName, const std::string &columnName);
 

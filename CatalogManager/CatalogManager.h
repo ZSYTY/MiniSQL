@@ -10,6 +10,7 @@
 
 #include "../BufferManager/BufferManager.h"
 #include "../Common/Common.h"
+
 #include <iostream>
 #include <sstream>
 using namespace MiniSQL;
