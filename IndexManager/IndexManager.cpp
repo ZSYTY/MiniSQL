@@ -118,52 +118,27 @@ int IndexManager::searchNext(const std::string &tableName, const std::string &co
     }
 }
 
-int IndexManager::serachEqual(const std::string &tableName, const std::string &columnName, const Tuple &tuple) {
+int IndexManager::serachEqual(const std::string &tableName, const std::string &columnName, const SqlValue &value) {
     auto T = getColomnType(tableName, columnName);
-    SqlValue value = tuple[columnIdx];
-    Tuple curTuple;
     int cur = -1;
+    SqlValue curValue;
     switch (T) {
         case MiniSQL::SqlValueBaseType::MiniSQL_int:
             cur = getIntTree().select(value);
-            while (cur != -1) {
-                curTuple = getIntTree().getTuple(cur);
-                if (curTuple == tuple) { // need to override operator
-                    return cur;
-                } else {
-                    if (curTuple[columnIdx] != value) {
-                        break;
-                    }
-                    cur = getIntTree().selectNext();
-                }
+            if (getIntTree().getValue(cur, curValue) and curValue == value) {
+                return cur;
             }
             break;
         case MiniSQL::SqlValueBaseType::MiniSQL_char:
             cur = getCharTree().select(value);
-            while (cur != -1) {
-                curTuple = getCharTree().getTuple(cur);
-                if (curTuple == tuple) { // need to override operator
-                    return cur;
-                } else {
-                    if (curTuple[columnIdx] != value) {
-                        break;
-                    }
-                    cur = getCharTree().selectNext();
-                }
+            if (getCharTree().getValue(cur, curValue) and curValue == value) {
+                return cur;
             }
             break;
         case MiniSQL::SqlValueBaseType::MiniSQL_float:
             cur = getFloatTree().select(value);
-            while (cur != -1) {
-                curTuple = getFloatTree().getTuple(cur);
-                if (curTuple == tuple) { // need to override operator
-                    return cur;
-                } else {
-                    if (curTuple[columnIdx] != value) {
-                        break;
-                    }
-                    cur = getFloatTree().selectNext();
-                }
+            if (getFloatTree().getValue(cur, curValue) and curValue == value) {
+                return cur;
             }
             break;
     }
