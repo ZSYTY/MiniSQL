@@ -92,6 +92,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
             tableInfo.recordCnt++;
         }
         // updateIndexes();
+        saveIndexes(tableInfo,record,blockNum);
         return true;
     }
     else{
@@ -108,6 +109,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
                 tableInfo.recordCnt++;
                 bufferManager->setDirty(fileName,blockNum-1);
                 // save Indexes
+                saveIndexes(tableInfo,record,blockNum-1);
                 return true;
             }
             else{
@@ -399,7 +401,7 @@ void RecordManager::indexTraversal(
         std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 )
 {
-    std::string fileName = tableInfo.tableName + ".def";
+    std::string fileName = tableInfo.tableName + ".db";
     int recordSize = getRecordSize(tableInfo.tableName);
     int recordsPerBlock = BlockSize / recordSize;
     int blockIndex = indexOffset / recordsPerBlock;
@@ -560,7 +562,7 @@ void RecordManager::printResult(TableInfo &tableInfo,const std::vector<Tuple> &r
 
 SqlValue* RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int indexPos)
 {
-    const std::string fileName = tableInfo.tableName + ".def";
+    const std::string fileName = tableInfo.tableName + ".db";
     int recordSize = getRecordSize(tableInfo.tableName);
     int recordsPerBlock = BlockSize / recordSize;
     int blockIndex = indexOffset / recordsPerBlock;
@@ -569,4 +571,12 @@ SqlValue* RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int index
     BYTE* blockPtr = bufferManager->getBlock(fileName,offset);
     auto record = readRecord(tableInfo,blockPtr+offset);
     return &record->at(indexPos);
+}
+
+void RecordManager::saveIndexes(TableInfo &tableInfo,const Tuple record,int offset)
+{
+    std::string fileName = tableInfo.tableName + ".db";
+    for(int i = 0;i < tableInfo.indexes.size();i++){
+        indexManager->insertKey(fileName,record,offset);
+    }
 }
