@@ -29,6 +29,8 @@ public:
 
     TableInfo getTableInfo(const std::string &tableName);
 
+    void updateTableInfo(const std::string &tableName, bool isInsert, int num = 1);
+
     bool createTable(const std::string &tableName,
                      const std::vector<std::pair<std::string, SqlValueType>> &schema,
                      const std::string &primaryKeyName);

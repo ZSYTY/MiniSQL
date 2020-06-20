@@ -11,7 +11,6 @@ bool API::createTable(const std::string &tableName,
     // If there exists a table with the same name
     if (cm->ifTableExist(tableName))
     {
-        // TODO duplicate table name
         std::cout << "Duplicate table name!" << std::endl;
         return false;
     }
@@ -23,7 +22,6 @@ bool API::createTable(const std::string &tableName,
             // If there exists a valid column
             if (item.first == primaryKeyName)
             {
-                // TODO duplicate table name
                 std::cout << "Invalid primary key name" << std::endl;
                 return false;
             }
@@ -44,7 +42,6 @@ bool API::dropTable(const std::string &tableName)
     // If there is no such table
     if (!cm->ifTableExist(tableName))
     {
-        // TODO no such table
         std::cout << "No such table!" << std::endl;
         return false;
     }
@@ -63,18 +60,29 @@ API::createIndex(const std::string &tableName, const std::string &columnName,
     // If there is no such table
     if (!cm->ifTableExist(tableName))
     {
-        // TODO no such table
         std::cout << "No such table!" << std::endl;
         return false;
     }
     // Get this table's information
     TableInfo tableInfo = cm->getTableInfo(tableName);
+    bool flag = false;
+    for (auto &item : tableInfo.columnName)
+    {
+        if(item == columnName)
+        {
+            flag = true;
+        }
+    }
+    if (!flag)
+    {
+        std::cout << "No such column!" << std::endl;
+        return false;
+    }
     for (auto &item : tableInfo.indexes)
     {
         // If there was already a index in the column
         if (item.columnName == columnName)
         {
-            // TODO already has a index
             std::cout << "There was already a index!" << std::endl;
             return false;
         }
@@ -88,11 +96,9 @@ API::createIndex(const std::string &tableName, const std::string &columnName,
         {
             return true;
         }
-        // TODO IndexManager create index failed
         std::cout << "IndexManager create index failed" << std::endl;
         return false;
     }
-    // TODO CatalogManager create index failed
     std::cout << "CatalogManager create index failed" << std::endl;
     return false;
 }
@@ -110,11 +116,9 @@ bool API::dropIndex(const std::string &indexName)
         {
             return true;
         }
-        // TODO IndexManager create index failed
         std::cout << "IndexManager drop index failed" << std::endl;
         return false;
     }
-    // TODO CatalogManager delete index failed
     std::cout << "CatalogManager delete index failed" << std::endl;
     return false;
 }
@@ -128,7 +132,6 @@ bool API::select(const std::string &tableName,
     // If there is no such table
     if (!cm->ifTableExist(tableName))
     {
-        // TODO no such table
         std::cout << "No such table!" << std::endl;
         return false;
     }
@@ -145,10 +148,10 @@ bool API::insertTuple(const std::string &tableName,
     // If there is no such table
     if (!cm->ifTableExist(tableName))
     {
-        // TODO no such table
         std::cout << "No such table!" << std::endl;
         return false;
     }
+    cm->updateTableInfo(tableName, true);
     RecordManager *rm = apiSingleton.getRecordManager();
 
     std::vector<Tuple> tuple;
@@ -165,11 +168,13 @@ bool API::deleteTuple(const std::string &tableName,
     // If there is no such table
     if (!cm->ifTableExist(tableName))
     {
-        // TODO no such table
         std::cout << "No such table!" << std::endl;
         return false;
     }
     RecordManager *rm = apiSingleton.getRecordManager();
 
-    return rm->deleteRecord(tableName, conditions);
+    int cnt = rm->deleteRecord(tableName, conditions);
+    cm->updateTableInfo(tableName, false, cnt);
+
+    return cnt != 0;
 }
