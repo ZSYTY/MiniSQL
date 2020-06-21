@@ -316,6 +316,7 @@ bool RecordManager::writeRecord(TableInfo &tableInfo,const Tuple record,char* pt
                         char a = '\0';
                         memcpy(ptr+p,&a,sizeof(char));
                     }
+                    //std::cout<<record[i].char_val<<std::endl;
 //                    memcpy(ptr+p,&record[i].char_val,sizeof(record[i].char_val.size()));
                     p+=sizeof(char);
                 }
@@ -498,14 +499,16 @@ std::shared_ptr<std::vector<SqlValue>> RecordManager::readRecord(TableInfo &tabl
                 break;
             }
             case SqlValueBaseType::MiniSQL_char:{
+                size = tableInfo.columnType[i].getSize();
                 char temp[size];
                 //int tmp = 1;
                 //char temp;
-                for(int k = 0;k < tableInfo.columnType[i].charLength;k++){
+                for(int k = 0;k < tableInfo.columnType[i].getSize();k++){
                     //memcpy(&temp,ptr+p,sizeof(char));
                     memcpy(&temp[k],ptr+p,sizeof(char));
                     p+=sizeof(char);
                 }
+                //std::cout<<temp<<std::endl; 
                 std::string content(temp);
                 //memcpy(&content,ptr+p,sizeof(char)*size);
                 records->emplace_back(tableInfo.columnType[i].type,content);
