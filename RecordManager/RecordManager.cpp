@@ -1,4 +1,5 @@
 #include "RecordManager.h"
+#include <cstring>
 
 // Input table name
 // write to the file
