@@ -305,7 +305,8 @@ void RecordManager::talbeTraversal(
         const std::vector<SqlCondition>& conditions,
         std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 ){
-    int indexPos;
+    int indexPos = -1;
+    int conditionPos = -1;
     for(int i = 0;i < conditions.size();i++)
     {
         int flag = 0;
@@ -313,16 +314,18 @@ void RecordManager::talbeTraversal(
         for(int j = 0;j < tableInfo.columnCnt;j++){
             if(conditions[i].columnName == tableInfo.columnName[j]){
                 flag = 1;
-                indexPos = i;
+                conditionPos = i;
+                indexPos = j;
+                break;
             }
         }
         if(flag == 1) break;
     }
     // Use Index
-    if(!tableInfo.indexes.empty()){
-        SqlValue indexValue = conditions[indexPos].val;
+    if(!tableInfo.indexes.empty() && conditionPos != -1){
+        SqlValue indexValue = conditions[conditionPos].val;
         int indexOffset = indexManager->search(tableInfo.tableName,tableInfo.columnName[indexPos],indexValue);
-        Operator op = conditions[indexPos].op;
+        Operator op = conditions[conditionPos].op;
         SqlValue* value = nullptr;
         switch(op)
         {
@@ -332,11 +335,11 @@ void RecordManager::talbeTraversal(
             }
             case Operator::LEQ:{
                 int indexMov = indexManager->searchHead(tableInfo.tableName,tableInfo.columnName[indexPos]);
-                value = getValue(tableInfo,indexOffset,indexPos);
+                value = getValue(tableInfo,indexMov,indexPos);
                 while(indexMov <= indexOffset){
                     if(op == Operator::LT && *value > indexValue) break;
                     if(op == Operator::LEQ && *value >= indexValue) break;
-                    indexTraversal(tableInfo,indexOffset,conditions,consumer);
+                    indexTraversal(tableInfo,indexMov,conditions,consumer);
                     indexMov = indexManager->searchNext(tableInfo.tableName,tableInfo.columnName[indexPos]);
                     value = getValue(tableInfo,indexMov,indexPos);
                 }
@@ -344,7 +347,7 @@ void RecordManager::talbeTraversal(
             }
             case Operator::GT:
             case Operator::GEQ: {
-                int indexOffset = indexManager->search(tableInfo.tableName, tableInfo.columnName[indexPos], indexValue);
+                //int indexOffset = indexManager->search(tableInfo.tableName, tableInfo.columnName[indexPos], indexValue);
                 value = getValue(tableInfo, indexOffset, indexPos);
                 while (indexOffset != -1) {
                     indexTraversal(tableInfo, indexOffset, conditions, consumer);
@@ -580,7 +583,8 @@ SqlValue* RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int index
     int blockIndex = indexOffset / recordsPerBlock;
     int remain = indexOffset % recordsPerBlock;
     int offset = remain*recordSize;
-    BYTE* blockPtr = bufferManager->getBlock(fileName,offset);
+    // Get the block before it
+    BYTE* blockPtr = bufferManager->getBlock(fileName,blockIndex);
     auto record = readRecord(tableInfo,blockPtr+offset);
     return &record->at(indexPos);
 }
