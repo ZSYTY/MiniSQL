@@ -19,7 +19,7 @@ void Interpreter::execute_delete(const sqltoast::delete_statement_t *stmt)
         }
     }
 
-    API::deleteTuple(table_name, where_cond);
+#ifdef _INTERP_DEBUG
     std::cout << "Deleting from " << table_name;
     if(!where_cond.empty()) {
         std::cout << " where ";
@@ -29,4 +29,7 @@ void Interpreter::execute_delete(const sqltoast::delete_statement_t *stmt)
         }
     }
     std::cout << std::endl;
+#endif /* _INTERP_DEBUG */
+
+    API::deleteTuple(table_name, where_cond);
 }

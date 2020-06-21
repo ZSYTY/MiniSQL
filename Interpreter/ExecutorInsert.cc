@@ -45,13 +45,16 @@ void Interpreter::execute_insert(const sqltoast::insert_statement_t *stmt)
             values.push_back(*val_final);
         }
 
-        API::insertTuple(table, values);
+#ifdef _INTERP_DEBUG
         std::cout << "Inserting into `" << table << "` (";
         for(const auto &val : values) {
             // FIXME non-int types are not printed
             std::cout << val.int_val << ", ";
         }
         std::cout << ')' << std::endl;
+#endif /* _INTERP_DEBUG */
+
+        API::insertTuple(table, values);
 
         continue_outer:
         void(0);    // labels at end of blocks are not allowed, so we add an empty statement

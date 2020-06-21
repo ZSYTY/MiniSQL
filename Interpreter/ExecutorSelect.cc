@@ -46,8 +46,7 @@ void Interpreter::execute_select(const sqltoast::select_statement_t *stmt)
         }
     }
 
-    // TODO stub
-    API::select(table_name, where_cond);
+#ifdef _INTERP_DEBUG
     std::cout << "Selecting * from " << table_name;
     if(!where_cond.empty()) {
         std::cout << " where ";
@@ -57,4 +56,7 @@ void Interpreter::execute_select(const sqltoast::select_statement_t *stmt)
         }
     }
     std::cout << std::endl;
+#endif /* _INTERP_DEBUG */
+
+    API::select(table_name, where_cond);
 }

@@ -12,7 +12,10 @@
 #include "../IndexManager/IndexManager.h"
 #include "../CatalogManager/CatalogManager.h"
 #include "../Common/Common.h"
-#include<iostream>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <cstdlib>
 
 using namespace MiniSQL;
 

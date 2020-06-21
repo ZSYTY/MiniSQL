@@ -35,7 +35,12 @@ BufferManager::BufferManager() {
     struct stat info;
     stat(defaultDir.c_str(), &info);
     if (! (info.st_mode & S_IFDIR)) { // need consideration
+#ifdef _WIN32
+        // Windows does not support file modes
+        mkdir(defaultDir.c_str());
+#else
         mkdir(defaultDir.c_str(), 0777);
+#endif
     }
 }
 
