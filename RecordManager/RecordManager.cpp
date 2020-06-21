@@ -191,7 +191,7 @@ int RecordManager::deleteRecord(const std::string &tableName,const std::vector<S
         std::cout<<"No record deleted"<<std::endl;
     }
     bufferManager->flush();
-    return true;
+    return count;
 }
 
 // overload
