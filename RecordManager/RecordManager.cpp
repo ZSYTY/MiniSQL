@@ -185,7 +185,7 @@ int RecordManager::deleteRecord(const std::string &tableName,const std::vector<S
                        return true;
                    });
     if (count != 0) {
-        std::cout << "Delete" <<count<<" record"<< std::endl;
+        std::cout << "Delete " <<count<<" record"<< std::endl;
     }
     else{
         std::cout<<"No record deleted"<<std::endl;
@@ -230,7 +230,13 @@ bool RecordManager::selectRecord(const std::string &tableName, const std::vector
              p+=recordLen;
              i++;
          }
-         printResult(tableInfo,results);
+         if(!results.empty())
+            printResult(tableInfo,results);
+         else
+         {
+            std::cout<<"No matching records found"<<std::endl;
+         }
+         
          return true;
      }
     talbeTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
@@ -312,20 +318,20 @@ void RecordManager::talbeTraversal(
 ){
     int indexPos = -1;
     int conditionPos = -1;
-    for(int i = 0;i < conditions.size();i++)
-    {
-        int flag = 0;
-        // Search the id of only one condition
-        for(int j = 0;j < tableInfo.columnCnt;j++){
-            if(conditions[i].columnName == tableInfo.columnName[j]){
-                flag = 1;
-                conditionPos = i;
-                indexPos = j;
-                break;
-            }
-        }
-        if(flag == 1) break;
-    }
+    // for(int i = 0;i < conditions.size();i++)
+    // {
+    //     int flag = 0;
+    //     // Search the id of only one condition
+    //     for(int j = 0;j < tableInfo.columnCnt;j++){
+    //         if(conditions[i].columnName == tableInfo.columnName[j]){
+    //             flag = 1;
+    //             conditionPos = i;
+    //             indexPos = j;
+    //             break;
+    //         }
+    //     }
+    //     if(flag == 1) break;
+    // }
     // Use Index
     if(!tableInfo.indexes.empty() && conditionPos != -1){
         SqlValue indexValue = conditions[conditionPos].val;
