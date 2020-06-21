@@ -73,7 +73,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
             std::vector<SqlCondition> conditions;
             SqlCondition condition(tableInfo.columnName[i],Operator::EQ,record[i]);
             conditions.push_back(condition);
-            talbeTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,size_t blockOffset,std::shared_ptr<std::vector<SqlValue>> record){
+            tableTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,size_t blockOffset,std::shared_ptr<std::vector<SqlValue>> record){
                 unique = false;
                 return false;
             });
@@ -174,7 +174,7 @@ int RecordManager::deleteRecord(const std::string &tableName,const std::vector<S
 
     count = 0;
     // Delete
-    talbeTraversal(tableInfo, conditions,
+    tableTraversal(tableInfo, conditions,
                    [&](BYTE *content, size_t offset,size_t blockOffset, std::shared_ptr<std::vector<SqlValue>> record) {
                        bool valid = false;
                        memcpy(content + offset, &valid, sizeof(bool));
@@ -239,7 +239,7 @@ bool RecordManager::selectRecord(const std::string &tableName, const std::vector
 
         return true;
     }
-    talbeTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,size_t blockOffset,std::shared_ptr<std::vector<SqlValue>> record){
+    tableTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,size_t blockOffset,std::shared_ptr<std::vector<SqlValue>> record){
         //auto projection = std::make_shared<std::vector<SqlValue>>();
         bool flag = false;
         for (int i = 0; i < conditions.size(); i++) {
@@ -316,7 +316,7 @@ bool RecordManager::writeRecord(TableInfo &tableInfo,const Tuple record,char* pt
     return true;
 }
 
-void RecordManager::talbeTraversal(
+void RecordManager::tableTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
         std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer

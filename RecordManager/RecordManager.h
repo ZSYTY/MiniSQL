@@ -65,7 +65,7 @@ public:
     // Large memory copy, un-efficiency
     //std::vector<Tuple> getTuples(const std::string &tableName);  
 
-    void talbeTraversal(
+    void tableTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
         std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
