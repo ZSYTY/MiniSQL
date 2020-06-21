@@ -428,7 +428,7 @@ void RecordManager::linearTraversal(
                 continue;
             }
             if(checkConditions(tableInfo,conditions,re)){
-                flag = consumer(blockPtr,offset,0,re);
+                flag = consumer(blockPtr,offset,i,re);
                 if(!flag){
                     //freeRecord(re);
                     return;
