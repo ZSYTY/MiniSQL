@@ -358,4 +358,6 @@ void CatalogManager::updateTableInfo(const std::string &tableName, bool isInsert
     {
         *(cnt + 1) = record_cnt - num;
     }
+
+    bufferManager->setDirty(tableName + ".def", 0);
 }
