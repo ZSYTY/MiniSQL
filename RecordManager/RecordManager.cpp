@@ -125,8 +125,8 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
                 //freeRecord(re);
             }
         }
-        std::cerr<<"RecordManager::insertOneRecord: error insert record at the tail"<<std::endl;
-        return false;
+        // std::cerr<<"RecordManager::insertOneRecord: error insert record at the tail"<<std::endl;
+        // return false;
     }
     char* contentPtr = bufferManager->getBlock(fileName,blockNum,true);
     unsigned int recordLen = getRecordSize(tableName);
@@ -217,21 +217,35 @@ bool RecordManager::selectRecord(const std::string &tableName, const std::vector
     }
 
     int recordLen = getRecordSize(tableName);
+    int recordsPerBlock = BlockSize/recordLen;
+    int blockOffset = 0;
+    int blockNum = bufferManager->getBlockCnt(fileName);
+    //std::cout<<recordsPerBlock<<std::endl;
     // get tuples
     std::vector<Tuple> results;
-    BYTE* blockPtr = bufferManager->getBlock(fileName,0,false);
-    if(conditions.size() == 0){
+    BYTE* blockPtr = bufferManager->getBlock(fileName,blockOffset,false);
+    if(conditions.size() == 0 && blockOffset < blockNum){
         int i = 0;
         int p = 0;
-        while(i < tableInfo.recordCnt){
+        while(i < tableInfo.recordCnt && blockOffset<blockNum){
             auto re = readRecord(tableInfo,blockPtr+p);
             if(re != nullptr)
                 results.emplace_back(*re);
             p+=recordLen;
             i++;
+            if(i>recordsPerBlock){
+                blockOffset++;
+                i = 0;
+                p = 0;
+                if(blockOffset<blockNum)
+                    blockPtr = bufferManager->getBlock(fileName,blockOffset,false);
+            }
         }
         if(!results.empty())
+        {
             printResult(tableInfo,results);
+            //std::cout<<i<<std::endl;
+        }
         else
         {
             std::cout<<"No matching records found."<<std::endl;
@@ -287,14 +301,14 @@ bool RecordManager::writeRecord(TableInfo &tableInfo,const Tuple record,char* pt
     memcpy(ptr+p,&valid,sizeof(bool));
     // write into records
     p+= sizeof(bool);
-    for(int i = 0;i < record.size();i++){
+    for(int i = 0;i < tableInfo.columnCnt;i++){
         switch(record[i].type){
             case SqlValueBaseType::MiniSQL_int:
                 memcpy(ptr+p,&record[i].int_val,sizeof(record[i].type));
                 p+=sizeof(record[i].type);
                 break;
             case SqlValueBaseType::MiniSQL_char:
-                for(int k = 0;k < tableInfo.columnType[i].charLength;k++) {
+                for(int k = 0;k < tableInfo.columnType[i].getSize();k++) {
                     if(record[i].char_val.size()>=k+1) {
                         memcpy(ptr + p, &record[i].char_val[k], sizeof(char));
                     }
