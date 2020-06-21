@@ -46,7 +46,7 @@ private:
 
     void printResult(TableInfo& tableInfo,const std::vector<Tuple> &results);
 
-    SqlValue* getValue(TableInfo &tableInfo,int indexOffset,int indexPos);
+    SqlValue getValue(TableInfo &tableInfo,int indexOffset,int indexPos);
 
 public:
     RecordManager(BufferManager *_bufferManager, IndexManager *_indexManager, CatalogManager *_catalogManager): bufferManager(_bufferManager), indexManager(_indexManager),catalogManager(_catalogManager) {};
@@ -82,11 +82,13 @@ public:
 
     template <class T>
     inline T getAsType(SqlValue* sqlValue,SqlValueBaseType){
+        T a;
         switch(sqlValue->type){
-            case SqlValueBaseType::MiniSQL_int: return sqlValue->int_val; break;
-            case SqlValueBaseType::MiniSQL_char: return sqlValue->char_val; break;
-            case SqlValueBaseType::MiniSQL_float: return sqlValue->float_val; break;
+            case SqlValueBaseType::MiniSQL_int: a = (T*)sqlValue->int_val; break;
+            case SqlValueBaseType::MiniSQL_char:a = (T*)sqlValue->char_val; break;
+            case SqlValueBaseType::MiniSQL_float: a = (T*)sqlValue->float_val; break;
         }
+        return a;
     }
 
     void indexTraversal(
