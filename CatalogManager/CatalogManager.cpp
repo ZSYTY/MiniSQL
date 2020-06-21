@@ -238,6 +238,20 @@ bool CatalogManager::createTable(const std::string &tableName,
     {
         return false;
     }
+    if (schema.size() > 32)
+    {
+        std::cout << "Too many attributes!" << std::endl;
+        return false;
+    }
+    for (auto &item : schema)
+    {
+        if (item.second.type ==  SqlValueBaseType::MiniSQL_char
+         and (item.second.charLength > 255 or item.second.charLength < 1))
+        {
+            std::cout  << "char length is not in range [1, 255]!";
+            return false;
+        }
+    }
     bufferManager->createFile(tableName + ".def");
     auto info = bufferManager->getBlock(tableName + ".def", 0, true);
     // cnt 用来写入两个 int 的值
@@ -358,4 +372,5 @@ void CatalogManager::updateTableInfo(const std::string &tableName, bool isInsert
     {
         *(cnt + 1) = record_cnt - num;
     }
+    bufferManager->setDirty(tableName + ".def", 0);
 }

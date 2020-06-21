@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-24 16:27:42 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-05-24 21:05:56
+ * @Last Modified time: 2020-06-21 21:57:28
  */
 
 #ifndef MINISQL_API_H
@@ -21,7 +21,7 @@ namespace API
     class APISingleton
     {
     public:
-        ~APISingleton() = default;
+        ~APISingleton();
 
         APISingleton(const APISingleton &) = delete;
 
@@ -52,12 +52,13 @@ namespace API
     private:
         APISingleton()
         {
-            auto *bufferManager = new BufferManager();
+            bufferManager = new BufferManager();
             catalogManager = new CatalogManager(bufferManager);
             indexManager = new IndexManager(bufferManager, catalogManager);
             recordManager = new RecordManager(bufferManager, indexManager, catalogManager);
         }
 
+        BufferManager *bufferManager = nullptr;
         RecordManager *recordManager = nullptr;
         CatalogManager *catalogManager = nullptr;
         IndexManager *indexManager = nullptr;
