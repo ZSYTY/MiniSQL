@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-24 16:50:16 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-06-19 21:23:59
+ * @Last Modified time: 2020-05-24 23:14:22
  */
 
 #ifndef MINISQL_COMMON_H
@@ -40,8 +40,7 @@ struct SqlValueType {
             case SqlValueBaseType::MiniSQL_int:
                 return sizeof(int);
             case SqlValueBaseType::MiniSQL_char:
-                // return sizeof(char) * (charLength + 1);
-                return sizeof(char) * (MaxCharLength + 1);
+                return sizeof(char) * (charLength + 1);
             case SqlValueBaseType::MiniSQL_float:
                 return sizeof(float);
         }
@@ -54,20 +53,18 @@ struct SqlValue {
     std::string char_val;
     float float_val;
     
-    SqlValue() {}
-
     SqlValue(SqlValueBaseType _type, int _int_val): type(_type), int_val(_int_val) {
         if (_type != SqlValueBaseType::MiniSQL_int) {
             throw std::runtime_error("Value types do not match");
         }
     }
     SqlValue(SqlValueBaseType _type, std::string _char_val): type(_type), char_val(_char_val) {
-        if (_type != SqlValueBaseType::MiniSQL_char) {
+        if (_type != SqlValueBaseType::MiniSQL_int) {
             throw std::runtime_error("Value types do not match");
         }
     }
     SqlValue(SqlValueBaseType _type, float _float_val): type(_type), float_val(_float_val) {
-        if (_type != SqlValueBaseType::MiniSQL_float) {
+        if (_type != SqlValueBaseType::MiniSQL_int) {
             throw std::runtime_error("Value types do not match");
         }
     }

@@ -16,22 +16,48 @@ bool API::createTable(const std::string &tableName,
         return false;
     }
     // If the user selects the prime key, check whether it is validate
+    std::string primary_key;
     if (!primaryKeyName.empty())
     {
+        bool flag = false;
         for (auto &item : schema)
         {
-            // // If there exists a valid column
-            // if (item.first == primaryKeyName)
-            // {
-            //     std::cout << "Invalid primary key name" << std::endl;
-            //     return false;
-            // }
+            // Whether there exists a valid column
+            if (item.first == primaryKeyName)
+            {
+                flag = true;
+                primary_key = item.first;
+                break;
+            }
         }
-
+        if (!flag)
+        {
+            std::cout << "Invalid primary key name" << std::endl;
+            return false;
+        }
+    }
+    else
+    {
+        bool flag = false;
+        for (auto &item: schema)
+        {
+            if (item.second.isUnique)
+            {
+                flag = true;
+                primary_key = item.first;
+                break;
+            }
+        }
+        if (!flag)
+        {
+            std::cout << "There are no unique columns!" << std::endl;
+            return false;
+        }
     }
 
-    cm->createTable(tableName, schema, primaryKeyName);
+    cm->createTable(tableName, schema, primary_key);
     rm->createTable(tableName);
+    API::createIndex(tableName, primary_key, "_" + primary_key);
 
     return true;
 }
@@ -70,7 +96,7 @@ API::createIndex(const std::string &tableName, const std::string &columnName,
     bool flag = false;
     for (auto &item : tableInfo.columnName)
     {
-        if(item == columnName)
+        if (item == columnName)
         {
             flag = true;
         }
