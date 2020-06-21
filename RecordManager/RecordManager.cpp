@@ -6,11 +6,11 @@ void RecordManager::createTable(const std::string &tableName)
 {
     std::string fileName = tableName+".db";
     // if table exist
-     if(bufferManager->ifFileExists(fileName)){
-         std::cerr<<"RecordManager::createTable: "<<"Table already exists."<<std::endl;
-         return;
-     }
-     //write file
+    if(bufferManager->ifFileExists(fileName)){
+        std::cerr<<"RecordManager::createTable: "<<"Table already exists."<<std::endl;
+        return;
+    }
+    //write file
     bufferManager->createFile(fileName);
     std::cout<<"table "<<tableName<<" created"<<std::endl;
     return;
@@ -21,11 +21,11 @@ void RecordManager::createTable(const std::string &tableName)
 void RecordManager::dropTable(const std::string &tableName)
 {
     std::string fileName = tableName+".db";
-     //table doesn't exist
-     if(!bufferManager->ifFileExists(fileName)){
-         std::cerr<<"RecordManager::dropTable: "<<"Table doesn't exist."<<std::endl;
-         return;
-     }
+    //table doesn't exist
+    if(!bufferManager->ifFileExists(fileName)){
+        std::cerr<<"RecordManager::dropTable: "<<"Table doesn't exist."<<std::endl;
+        return;
+    }
     bufferManager->removeFile(fileName);
     std::cout<<"table "<<tableName<<" has been deleted"<<std::endl;
     return;
@@ -54,12 +54,12 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
     std::string fileName = tableName+".db";
     //std::vector<Tuple> tuples = getTuples(tableName);
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
-    
-     //Check if table exist
-     if(!bufferManager->ifFileExists(fileName)){
-         std::cerr<<"RecordManager::insertOneRecord: "<<"Table doesn't exist."<<std::endl;
-         return false;
-     }
+
+    //Check if table exist
+    if(!bufferManager->ifFileExists(fileName)){
+        std::cerr<<"RecordManager::insertOneRecord: "<<"Table doesn't exist."<<std::endl;
+        return false;
+    }
 
     // Check if records illegal
     if(!checkType(tableInfo,record)){
@@ -67,13 +67,13 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
         return false;
     }
     for(int i = 0;i < tableInfo.columnCnt;i++){
-    //  Check primary key   
+        //  Check primary key
         if(tableInfo.columnType[i].isUnique || tableInfo.columnType[i].isPrimary){
             bool unique = true;
             std::vector<SqlCondition> conditions;
             SqlCondition condition(tableInfo.columnName[i],Operator::EQ,record[i]);
             conditions.push_back(condition);
-            talbeTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
+            talbeTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,size_t blockOffset,std::shared_ptr<std::vector<SqlValue>> record){
                 unique = false;
                 return false;
             });
@@ -101,7 +101,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
         }
         // updateIndexes();
         std::cerr<<"RecordManager::insertOneRecord: error insert the first block"<<std::endl;
-        return false;     
+        return false;
     }
     else{
         // Get last block
@@ -175,13 +175,13 @@ int RecordManager::deleteRecord(const std::string &tableName,const std::vector<S
     count = 0;
     // Delete
     talbeTraversal(tableInfo, conditions,
-                   [&](BYTE *content, size_t offset, std::shared_ptr<std::vector<SqlValue>> record) {
+                   [&](BYTE *content, size_t offset,size_t blockOffset, std::shared_ptr<std::vector<SqlValue>> record) {
                        bool valid = false;
                        memcpy(content + offset, &valid, sizeof(bool));
                        //block->dirty = true;
                        //tableInfo.recordCnt--;
                        count++;
-                       bufferManager->setDirty(fileName, offset);
+                       bufferManager->setDirty(fileName, blockOffset);
                        return true;
                    });
     if (count != 0) {
@@ -210,61 +210,61 @@ bool RecordManager::selectRecord(const std::string &tableName, const std::vector
 {
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
     std::string fileName = tableName + ".db";
-     // Check if talbe exist(already have been done in API)
-     if(!bufferManager->ifFileExists(fileName)){
-         std::cerr<<"RecordManger::selectRecord: "<<"Table doesn't exist."<<std::endl;
-         return false;
-     }
+    // Check if talbe exist(already have been done in API)
+    if(!bufferManager->ifFileExists(fileName)){
+        std::cerr<<"RecordManger::selectRecord: "<<"Table doesn't exist."<<std::endl;
+        return false;
+    }
 
-     int recordLen = getRecordSize(tableName);
+    int recordLen = getRecordSize(tableName);
     // get tuples
     std::vector<Tuple> results;
-     BYTE* blockPtr = bufferManager->getBlock(fileName,0,false);
-     if(conditions.size() == 0){
-         int i = 0;
-         int p = 0;
-         while(i < tableInfo.recordCnt){
-             auto re = readRecord(tableInfo,blockPtr+p);
-             if(re != nullptr)
+    BYTE* blockPtr = bufferManager->getBlock(fileName,0,false);
+    if(conditions.size() == 0){
+        int i = 0;
+        int p = 0;
+        while(i < tableInfo.recordCnt){
+            auto re = readRecord(tableInfo,blockPtr+p);
+            if(re != nullptr)
                 results.emplace_back(*re);
-             p+=recordLen;
-             i++;
-         }
-         if(!results.empty())
+            p+=recordLen;
+            i++;
+        }
+        if(!results.empty())
             printResult(tableInfo,results);
-         else
-         {
-            std::cout<<"No matching records found"<<std::endl;
-         }
-         
-         return true;
-     }
-    talbeTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
+        else
+        {
+            std::cout<<"No matching records found."<<std::endl;
+        }
+
+        return true;
+    }
+    talbeTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,size_t blockOffset,std::shared_ptr<std::vector<SqlValue>> record){
         //auto projection = std::make_shared<std::vector<SqlValue>>();
         bool flag = false;
         for (int i = 0; i < conditions.size(); i++) {
-				for (int j = 0; j < tableInfo.columnCnt; j++) {
-				    // If we found one column match, then we go on check whether this tuple satisfy other conditions
-					if (tableInfo.columnName[j] == conditions[i].columnName) {
-					    results.push_back(*record);
-					    flag = true;
-					    break;
-					}
-				}
-				if(flag) break;
-
+            for (int j = 0; j < tableInfo.columnCnt; j++) {
+                // If we found one column match, then we go on check whether this tuple satisfy other conditions
+                if (tableInfo.columnName[j] == conditions[i].columnName) {
+                    results.push_back(*record);
+                    flag = true;
+                    break;
+                }
             }
-            //result.push_back(*projection);
-            return true; // Don't delete it
+            if(flag) break;
+
+        }
+        //result.push_back(*projection);
+        return true; // Don't delete it
     });
 
     if(!results.empty())
         printResult(tableInfo,results);
     else
     {
-        std::cout<<"No matching records found"<<std::endl;
+        std::cout<<"No matching records found."<<std::endl;
     }
-    
+
     return true;
 }
 
@@ -282,7 +282,7 @@ bool RecordManager::checkType(TableInfo &tableInfo,const Tuple record)
 bool RecordManager::writeRecord(TableInfo &tableInfo,const Tuple record,char* ptr)
 {
     int p = 0;
-    // valid 
+    // valid
     bool valid = true;
     memcpy(ptr+p,&valid,sizeof(bool));
     // write into records
@@ -319,7 +319,7 @@ bool RecordManager::writeRecord(TableInfo &tableInfo,const Tuple record,char* pt
 void RecordManager::talbeTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
-        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 ){
     int indexPos = -1;
     int conditionPos = -1;
@@ -395,7 +395,7 @@ void RecordManager::talbeTraversal(
 void RecordManager::linearTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
-        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 ){
     std::string fileName = tableInfo.tableName+".db";
     unsigned int recordLen = getRecordSize(tableInfo.tableName);
@@ -413,7 +413,7 @@ void RecordManager::linearTraversal(
                 continue;
             }
             if(checkConditions(tableInfo,conditions,re)){
-                flag = consumer(blockPtr,offset,re);
+                flag = consumer(blockPtr,offset,0,re);
                 if(!flag){
                     //freeRecord(re);
                     return;
@@ -429,7 +429,7 @@ void RecordManager::indexTraversal(
         TableInfo& tableInfo,
         int indexOffset,
         std::vector<SqlCondition> conditions,
-        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 )
 {
     std::string fileName = tableInfo.tableName + ".db";
@@ -441,7 +441,7 @@ void RecordManager::indexTraversal(
     BYTE* blockPtr = bufferManager->getBlock(fileName,blockIndex,false);
     auto record = readRecord(tableInfo,blockPtr+offset);
     if(record!=nullptr && checkConditions(tableInfo,conditions,record)){
-        consumer(blockPtr,offset,record);
+        consumer(blockPtr,offset,0,record);
     }
     if(record!=nullptr){
         //freeRecord(record);
@@ -505,7 +505,7 @@ std::shared_ptr<std::vector<SqlValue>> RecordManager::readRecord(TableInfo &tabl
                 p+=size;
                 break;
             }
-         }
+        }
 
     }
     return std::shared_ptr<std::vector<SqlValue>>(records);
@@ -517,20 +517,20 @@ void RecordManager::freeRecord(std::shared_ptr<std::vector<SqlValue>> record)
         switch(record->at(i).type){
             case SqlValueBaseType::MiniSQL_int:
                 delete &record->at(i).int_val;
-            break;
+                break;
             case SqlValueBaseType::MiniSQL_char:
-                delete &record->at(i).char_val;           
-            break;
+                delete &record->at(i).char_val;
+                break;
             case SqlValueBaseType::MiniSQL_float:
                 delete &record->at(i).float_val;
-            break;
+                break;
         }
     }
     return;
 }
 
 bool RecordManager::checkConditions(TableInfo &tableInfo,const std::vector<SqlCondition> conditions,std::shared_ptr<std::vector<SqlValue>> record)
-{   
+{
     bool valid = true;
     for(int i = 0;i < conditions.size() && valid;i++)
     {
@@ -539,17 +539,17 @@ bool RecordManager::checkConditions(TableInfo &tableInfo,const std::vector<SqlCo
                 auto value = record->at(j);
                 switch(conditions[i].op){
                     case Operator::EQ:
-				    valid = value == conditions[i].val; break;
-			        case Operator::NEQ:
-				    valid = value != conditions[i].val; break;
-			        case Operator::LT:
-				    valid =  value < conditions[i].val; break;
-			        case Operator::LEQ:
-				    valid = value <= conditions[i].val; break;
-			        case Operator::GT:
-				    valid = value > conditions[i].val; break;
-			        case Operator::GEQ:
-				    valid = value >= conditions[i].val; break;
+                        valid = value == conditions[i].val; break;
+                    case Operator::NEQ:
+                        valid = value != conditions[i].val; break;
+                    case Operator::LT:
+                        valid =  value < conditions[i].val; break;
+                    case Operator::LEQ:
+                        valid = value <= conditions[i].val; break;
+                    case Operator::GT:
+                        valid = value > conditions[i].val; break;
+                    case Operator::GEQ:
+                        valid = value >= conditions[i].val; break;
                 }
             }
         }

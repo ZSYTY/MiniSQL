@@ -68,13 +68,13 @@ public:
     void talbeTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
-        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
     );
     
     void linearTraversal(
         TableInfo &tableInfo,
         const std::vector<SqlCondition>& conditions,
-        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
     );
 
     template <class T>
@@ -90,7 +90,7 @@ public:
         TableInfo& tableInfo,
         int indexOffset,    // This offset marks the index of the record in the table
         std::vector<SqlCondition> conditions,
-        std::function<bool(BYTE*,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
+        std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
     );
 
     void freeRecord(std::shared_ptr<std::vector<SqlValue>> record);
