@@ -57,26 +57,31 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
     
      //Check if table exist
      if(!bufferManager->ifFileExists(fileName)){
-         std::cerr<<"RecordManager::insertRecord: "<<"Table doesn't exist."<<std::endl;
+         std::cerr<<"RecordManager::insertOneRecord: "<<"Table doesn't exist."<<std::endl;
          return false;
      }
 
     // Check if records illegal
     if(!checkType(tableInfo,record)){
-        std::cerr<<"RecordManger::insertRecord: "<<"Types conflict."<<std::endl;
+        std::cerr<<"RecordManger::insertOneRecord: "<<"Types conflict."<<std::endl;
         return false;
     }
-
+    for(int i = 0;i < tableInfo.columnCnt;i++){
     //  Check primary key   
-    if(!tableInfo.primaryKeyName.empty()){
-        bool unique = true;
-        std::vector<SqlCondition> conditions;
-        talbeTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
-            unique = false;
-            return false;
-        });
-        std::cerr<<"RecordManger::insertRecord: "<<"Primarykey duplicates."<<std::endl;
-        return false;
+        if(tableInfo.columnType[i].isUnique || tableInfo.columnType[i].isPrimary){
+            bool unique = true;
+            std::vector<SqlCondition> conditions;
+            SqlCondition condition(tableInfo.columnName[i],Operator::EQ,record[i]);
+            conditions.push_back(condition);
+            talbeTraversal(tableInfo,conditions,[&](BYTE* block,size_t offset,std::shared_ptr<std::vector<SqlValue>> record){
+                unique = false;
+                return false;
+            });
+            if(!unique){
+                std::cerr<<"RecordManger::insertRecord: "<<"Primarykey duplicates."<<std::endl;
+                return false;
+            }
+        }
     }
 
     // Check Complete
