@@ -1,5 +1,4 @@
 #include "RecordManager.h"
-#include <cstring>
 
 // Input table name
 // write to the file
@@ -339,66 +338,86 @@ void RecordManager::tableTraversal(
 ){
     int indexPos = -1;
     int conditionPos = -1;
-    // for(int i = 0;i < conditions.size();i++)
-    // {
-    //     int flag = 0;
-    //     // Search the id of only one condition
-    //     for(int j = 0;j < tableInfo.columnCnt;j++){
-    //         if(conditions[i].columnName == tableInfo.columnName[j]){
-    //             flag = 1;
-    //             conditionPos = i;
-    //             indexPos = j;
-    //             break;
-    //         }
-    //     }
-    //     if(flag == 1) break;
-    // }
-    // Use Index
-    if(!tableInfo.indexes.empty() && conditionPos != -1){
+    for(int i = 0;i < conditions.size();i++)
+    {
+        int flag = 0;
+        // Search the id of only one condition
+        for(int j = 0;j < tableInfo.indexes.size();j++){
+            if(conditions[i].columnName == tableInfo.indexes[j].columnName){
+                flag = 1;
+                conditionPos = i;
+                indexPos = j;
+                break;
+            }
+        }
+        if(flag == 1) break;
+    }
+    //Use Index
+    if(!tableInfo.indexes.empty() && conditionPos != -1 && indexPos != -1){
         SqlValue indexValue = conditions[conditionPos].val;
-        int indexOffset = indexManager->search(tableInfo.tableName,tableInfo.columnName[indexPos],indexValue);
+        int indexOffset = indexManager->search(tableInfo.tableName,tableInfo.indexes[indexPos].columnName,indexValue);
+        //std::cout<<indexOffset<<std::endl;
         Operator op = conditions[conditionPos].op;
-        SqlValue* value = nullptr;
+        SqlValueBaseType indexType = indexValue.type;
         switch(op)
         {
             case Operator::NEQ: {//!=
                 linearTraversal(tableInfo, conditions, consumer);
                 break;
             }
+            case Operator::LT:
             case Operator::LEQ:{
-                int indexMov = indexManager->searchHead(tableInfo.tableName,tableInfo.columnName[indexPos]);
-                value = getValue(tableInfo,indexMov,indexPos);
+                int indexMov = indexManager->searchHead(tableInfo.tableName,tableInfo.indexes[indexPos].columnName);
+                //std::cout<<indexMov<<std::endl;
+                SqlValue value = getValue(tableInfo,indexMov,indexPos);
                 while(indexMov <= indexOffset){
-                    if(op == Operator::LT && *value > indexValue) break;
-                    if(op == Operator::LEQ && *value >= indexValue) break;
+                    if(op == Operator::LT && value > indexValue) break;
+                    if(op == Operator::LEQ && value >= indexValue) break;
                     indexTraversal(tableInfo,indexMov,conditions,consumer);
-                    indexMov = indexManager->searchNext(tableInfo.tableName,tableInfo.columnName[indexPos]);
+                    indexMov = indexManager->searchNext(tableInfo.tableName,tableInfo.indexes[indexPos].columnName);
                     value = getValue(tableInfo,indexMov,indexPos);
                 }
                 break;
             }
-            case Operator::GT:
+            case Operator::GT:{
+                SqlValue value = getValue(tableInfo, indexOffset, indexPos);
+                if(value<=indexValue){
+                    indexOffset = indexManager->searchNext(tableInfo.tableName, tableInfo.indexes[indexPos].columnName);
+                }
+            }
             case Operator::GEQ: {
                 //int indexOffset = indexManager->search(tableInfo.tableName, tableInfo.columnName[indexPos], indexValue);
-                value = getValue(tableInfo, indexOffset, indexPos);
+                if(indexOffset = -1){
+                    std::cout<<"No greater record found"<<std::endl;
+                    return;
+                }
+                SqlValue value = getValue(tableInfo, indexOffset, indexPos);
                 while (indexOffset != -1) {
                     indexTraversal(tableInfo, indexOffset, conditions, consumer);
-                    indexOffset = indexManager->searchNext(tableInfo.tableName, tableInfo.columnName[indexPos]);
+                    std::cout<<indexOffset<<std::endl;
+                    indexOffset = indexManager->searchNext(tableInfo.tableName, tableInfo.indexes[indexPos].columnName);
                 }
                 break;
             }
             case Operator::EQ: // ==
             {
-                indexOffset = indexManager->searchEqual(tableInfo.tableName, tableInfo.columnName[indexPos],
-                                                        indexValue);
-                value = getValue(tableInfo, indexOffset, indexPos);
+                indexOffset = 0; 
+
+                //std::cout<<indexOffset<<std::endl;
+                SqlValue value = getValue(tableInfo, indexOffset, indexPos);
+                std::cout<<indexValue.int_val<<std::endl;
+                std::cout<<value.int_val<<std::endl;
                 while (indexOffset != -1) {
-                    if (op == Operator::EQ && *value != indexValue) {
+                    if (value > indexValue || value < indexValue ) {
                         break;
                     }
                     indexTraversal(tableInfo, indexOffset, conditions, consumer);
-                    indexOffset = indexManager->searchNext(tableInfo.tableName, tableInfo.columnName[indexPos]);
-                    value = getValue(tableInfo, indexOffset, indexPos);
+                    //std::cout<<"I catch you."<<std::endl;
+                    indexOffset = indexManager->searchNext(tableInfo.tableName, tableInfo.indexes[indexPos].columnName);
+                    
+                    if(indexOffset!=-1)
+                        value = getValue(tableInfo, indexOffset, indexPos);
+                    //std::cout<<"Hey guys"<<std::endl;
                 }
                 break;
             }
@@ -457,7 +476,7 @@ void RecordManager::indexTraversal(
     BYTE* blockPtr = bufferManager->getBlock(fileName,blockIndex,false);
     auto record = readRecord(tableInfo,blockPtr+offset);
     if(record!=nullptr && checkConditions(tableInfo,conditions,record)){
-        consumer(blockPtr,offset,0,record);
+        consumer(blockPtr,offset,blockIndex,record);
     }
     if(record!=nullptr){
         //freeRecord(record);
@@ -609,7 +628,7 @@ void RecordManager::printResult(TableInfo &tableInfo,const std::vector<Tuple> &r
     }
 }
 
-SqlValue* RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int indexPos)
+SqlValue RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int indexPos)
 {
     const std::string fileName = tableInfo.tableName + ".db";
     int recordSize = getRecordSize(tableInfo.tableName);
@@ -617,16 +636,34 @@ SqlValue* RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int index
     int blockIndex = indexOffset / recordsPerBlock;
     int remain = indexOffset % recordsPerBlock;
     int offset = remain*recordSize;
+    int columnIndex = -1;
     // Get the block before it
     BYTE* blockPtr = bufferManager->getBlock(fileName,blockIndex);
     auto record = readRecord(tableInfo,blockPtr+offset);
-    return &record->at(indexPos);
+    if(record == nullptr){
+        //qstd::cout<<"Cannot find"<<std::endl;
+        return record->at(0);
+    }
+    else{
+        for(int i = 0;i < tableInfo.columnCnt;i++){
+            if(tableInfo.columnName[i] == tableInfo.indexes[indexPos].columnName){
+                columnIndex = i;
+                break;
+            }
+        }
+        //std::cout<<"Find!!!"<<std::endl;
+        return record->at(columnIndex);
+    }
+    
 }
 
 void RecordManager::saveIndexes(TableInfo &tableInfo,const Tuple record,int offset)
 {
     std::string fileName = tableInfo.tableName + ".db";
     for(int i = 0;i < tableInfo.indexes.size();i++){
-        indexManager->insertKey(fileName,record,offset);
+        if(!indexManager->insertKey(fileName,record,offset)){
+            std::cerr<<"RecordManager::saveIndexes: error when insert at No."<<offset<<std::endl;
+        }
     }
+    return;
 }
