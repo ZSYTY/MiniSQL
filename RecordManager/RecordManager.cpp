@@ -185,7 +185,7 @@ int RecordManager::deleteRecord(const std::string &tableName,const std::vector<S
                        return true;
                    });
     if (count != 0) {
-        std::cout << "Delete " <<count<<" record"<< std::endl;
+        std::cout <<"Delete "<<count<<" record"<< std::endl;
     }
     else{
         std::cout<<"No record deleted"<<std::endl;
@@ -258,8 +258,13 @@ bool RecordManager::selectRecord(const std::string &tableName, const std::vector
             return true; // Don't delete it
     });
 
-    printResult(tableInfo,results);
-
+    if(!results.empty())
+        printResult(tableInfo,results);
+    else
+    {
+        std::cout<<"No matching records found"<<std::endl;
+    }
+    
     return true;
 }
 
