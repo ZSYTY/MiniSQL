@@ -1,6 +1,10 @@
 #include "API.h"
 #include <iostream>
 
+API::APISingleton::~APISingleton() {
+    delete bufferManager;
+}
+
 bool API::createTable(const std::string &tableName,
                       const std::vector<std::pair<std::string, SqlValueType> > &schema,
                       const std::string &primaryKeyName)
