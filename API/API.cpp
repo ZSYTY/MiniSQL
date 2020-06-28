@@ -70,12 +70,19 @@ bool API::dropTable(const std::string &tableName)
 {
     APISingleton &apiSingleton = API::APISingleton::getInstance();
     CatalogManager *cm = apiSingleton.getCatalogManager();
+    IndexManager *im = apiSingleton.getIndexManager();
 
     // If there is no such table
     if (!cm->ifTableExist(tableName))
     {
         std::cout << "No such table!" << std::endl;
         return false;
+    }
+
+    TableInfo info = cm->getTableInfo(tableName);
+    for (auto &item : info.indexes)
+    {
+        im->dropIndex(item.indexName);
     }
 
     return cm->deleteTable(tableName);
