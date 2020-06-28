@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-06-10 16:46:54 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-06-28 15:21:15
+ * @Last Modified time: 2020-06-28 15:43:25
  */
 
 #include "IndexManager.h"
@@ -90,9 +90,12 @@ bool IndexManager::dropIndex(const std::string &indexName) {
 
 int IndexManager::search(const std::string &tableName, const std::string &columnName, const SqlValue &value) {
     auto T = getColomnType(tableName, columnName);
+    int rst;
     switch (T) {
         case MiniSQL::SqlValueBaseType::MiniSQL_int:
-            return getIntTree().select(value);
+            rst = getIntTree().select(value);
+            std::cout << "IndexManger::search: " << rst << std::endl;
+            return rst;
             break;
         case MiniSQL::SqlValueBaseType::MiniSQL_char:
             return getCharTree().select(value);

@@ -132,7 +132,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
     char* contentPtr = bufferManager->getBlock(fileName,blockNum,true);
     unsigned int recordLen = getRecordSize(tableName);
     int recordsPerBlock = BlockSize / recordLen;
-    indexOffset = recordsPerBlock * blockNum + 1;
+    indexOffset = recordsPerBlock * blockNum;
     memset(contentPtr,0,BlockSize);
     bufferManager->setDirty(fileName,blockNum);
     if(writeRecord(tableInfo,record,contentPtr)){
