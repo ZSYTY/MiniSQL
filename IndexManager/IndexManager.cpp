@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-06-10 16:46:54 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-06-28 15:43:25
+ * @Last Modified time: 2020-06-28 18:03:30
  */
 
 #include "IndexManager.h"
@@ -83,7 +83,7 @@ bool IndexManager::buildIndex(const IndexInfo &index) {
 }
 
 bool IndexManager::dropIndex(const std::string &indexName) {
-    auto table = catalogManager->getTableInfo(indexName);
+    // auto table = catalogManager->getTableInfo(indexName);
     bufferManager->removeFile(indexName + ".index");
     return true;
 }
@@ -94,7 +94,7 @@ int IndexManager::search(const std::string &tableName, const std::string &column
     switch (T) {
         case MiniSQL::SqlValueBaseType::MiniSQL_int:
             rst = getIntTree().select(value);
-            std::cout << "IndexManger::search: " << rst << std::endl;
+            // std::cout << "IndexManger::search: " << rst << std::endl;
             return rst;
             break;
         case MiniSQL::SqlValueBaseType::MiniSQL_char:

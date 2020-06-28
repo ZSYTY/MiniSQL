@@ -134,10 +134,10 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
     int recordsPerBlock = BlockSize / recordLen;
     indexOffset = recordsPerBlock * blockNum;
     memset(contentPtr,0,BlockSize);
-    bufferManager->setDirty(fileName,blockNum);
     if(writeRecord(tableInfo,record,contentPtr)){
         std::cout<<"Successfully write record."<<std::endl;
         tableInfo.recordCnt++;
+        bufferManager->setDirty(fileName,blockNum);
         saveIndexes(tableInfo,record,indexOffset);
         return true;
     }

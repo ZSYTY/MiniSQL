@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-06-11 15:53:58 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-06-28 15:12:50
+ * @Last Modified time: 2020-06-28 17:54:24
  */
 
 #ifndef MINISQL_B_PLUS_TREE_H
@@ -380,7 +380,7 @@ public:
         BYTE *block = bm->getBlock(tableFileName, i);
         if (block[j]) {
             rst = toValue(block + j + dataOffset);
-            std::cout << "getValue: " << rst.int_val << std::endl;
+            // std::cout << "getValue: " << rst.int_val << std::endl;
             return true;
         } else {
             return false;

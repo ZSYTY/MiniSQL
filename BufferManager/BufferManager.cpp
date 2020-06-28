@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-26 22:10:30 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-06-28 15:03:50
+ * @Last Modified time: 2020-06-28 19:22:26
  */
 
 #include <cstdio>
@@ -20,10 +20,11 @@ const std::string BufferManager::defaultDir = "DBFiles";
 
 void BufferManager::flush(Block &block, bool bulk) {
     if (block.dirty) {
-        std::ofstream outfile(defaultDir + "/" + block.filename, std::ios::binary);
+        std::cout << "flush: (" << block.filename << ", " << block.offset << ")" << std::endl;
+        std::ofstream outfile(defaultDir + "/" + block.filename, std::ios::binary | std::ios::in);
         outfile.seekp(block.offset * BlockSize, std::ios::beg);
         outfile.write(block.content, BlockSize);
-
+        outfile.flush();
         if (! bulk) {
             dirtyList.erase(block.id);
         }
@@ -49,7 +50,7 @@ BufferManager::~BufferManager() {
 }
 
 BYTE* BufferManager::getBlock(const std::string &filename, unsigned int offset, bool allocate) {
-    // std::cout << "getBlock: (" << filename << ", " << offset << ", " << allocate << ")" << std::endl;
+    std::cout << "getBlock: (" << filename << ", " << offset << ", " << allocate << ")" << std::endl;
     auto key = std::make_pair(filename, offset);
     if (bufferMap.count(key)) {
         Block &cur = blockBuffer[bufferMap[key]];
@@ -73,9 +74,10 @@ BYTE* BufferManager::getBlock(const std::string &filename, unsigned int offset, 
             }
             static BYTE empty[BlockSize] = "";
             infile.close();
-            std::ofstream outfile(defaultDir + "/" + filename, std::ios::binary | std::ios::ate);
+            std::ofstream outfile(defaultDir + "/" + filename, std::ios::binary | std::ios::app | std::ios::in);
             while (blockCnt++ <= offset) {
                 outfile.write(empty, BlockSize);
+                outfile.flush();
             }
             std::copy(empty, empty + BlockSize, cur.content);
         }
@@ -125,7 +127,9 @@ bool BufferManager::ifFileExists(const std::string &filename) {
 
 void BufferManager::createFile(const std::string &filename) {
     if (! ifFileExists(filename)) {
-        std::ofstream(defaultDir + "/" + filename);
+        std::cout << filename << std::endl;
+        std::ofstream outfile(defaultDir + "/" + filename, std::ios::binary | std::ios::trunc);
+        outfile.flush();
     }
 }
 
