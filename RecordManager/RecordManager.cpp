@@ -50,7 +50,7 @@ bool RecordManager::insertRecord(const std::string &tableName, const std::vector
 // Insert 1 turple into block
 bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple record)
 {
-    int tailBlockID,flag = 1;
+    int tailBlockID;
     size_t offset;
     std::string fileName = tableName+".data";
     //std::vector<Tuple> tuples = getTuples(tableName);
@@ -150,7 +150,6 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
 int RecordManager::deleteRecord(const std::string &tableName,const std::vector<SqlCondition> &conditions) {
     // Initialize
     int count = -1;
-    bool flag = false, index_flag = false;
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
     const std::string fileName = tableInfo.tableName + ".data";
     //Check if table exist
@@ -362,7 +361,7 @@ void RecordManager::tableTraversal(
             return;
         }
         Operator op = conditions[conditionPos].op;
-        SqlValueBaseType indexType = indexValue.type;
+        //SqlValueBaseType indexType = indexValue.type;
         switch(op)
         {
             case Operator::NEQ: {//!=
@@ -370,13 +369,24 @@ void RecordManager::tableTraversal(
                 break;
             }
             case Operator::LT:
-            case Operator::LEQ:{
+            {
                 int indexMov = indexManager->searchHead(tableInfo.tableName,tableInfo.indexes[indexPos].columnName);
                 //std::cout<<indexMov<<std::endl;
                 SqlValue value = getValue(tableInfo,indexMov,indexPos);
                 while(indexMov <= indexOffset){
-                    if(op == Operator::LT && value > indexValue) break;
-                    if(op == Operator::LEQ && value >= indexValue) break;
+                    if(op == Operator::LT && value >= indexValue) break;
+                    indexTraversal(tableInfo,indexMov,conditions,consumer);
+                    indexMov = indexManager->searchNext(tableInfo.tableName,tableInfo.indexes[indexPos].columnName);
+                    value = getValue(tableInfo,indexMov,indexPos);
+                }
+                break;
+            }
+            case Operator::LEQ:{
+                int indexMov = indexManager->searchHead(tableInfo.tableName,tableInfo.indexes[indexPos].columnName);
+                SqlValue value = getValue(tableInfo,indexMov,indexPos);
+                while(indexMov <= indexOffset){
+                    //if(op == Operator::LT && value > indexValue) break;
+                    if(value > indexValue) break;
                     indexTraversal(tableInfo,indexMov,conditions,consumer);
                     indexMov = indexManager->searchNext(tableInfo.tableName,tableInfo.indexes[indexPos].columnName);
                     value = getValue(tableInfo,indexMov,indexPos);
@@ -391,14 +401,15 @@ void RecordManager::tableTraversal(
             }
             case Operator::GEQ: {
                 //int indexOffset = indexManager->search(tableInfo.tableName, tableInfo.columnName[indexPos], indexValue);
-                if(indexOffset = -1){
+                if(indexOffset == -1){
                     std::cout<<"No greater record found"<<std::endl;
                     return;
                 }
                 SqlValue value = getValue(tableInfo, indexOffset, indexPos);
+                //std::cout<<value.int_val<<std::endl;
                 while (indexOffset != -1) {
                     indexTraversal(tableInfo, indexOffset, conditions, consumer);
-                    std::cout<<indexOffset<<std::endl;
+                    //std::cout<<indexOffset<<std::endl;
                     indexOffset = indexManager->searchNext(tableInfo.tableName, tableInfo.indexes[indexPos].columnName);
                 }
                 break;
