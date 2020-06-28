@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-05-26 22:10:30 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-06-11 11:22:56
+ * @Last Modified time: 2020-06-28 15:03:50
  */
 
 #include <cstdio>
@@ -49,6 +49,7 @@ BufferManager::~BufferManager() {
 }
 
 BYTE* BufferManager::getBlock(const std::string &filename, unsigned int offset, bool allocate) {
+    // std::cout << "getBlock: (" << filename << ", " << offset << ", " << allocate << ")" << std::endl;
     auto key = std::make_pair(filename, offset);
     if (bufferMap.count(key)) {
         Block &cur = blockBuffer[bufferMap[key]];

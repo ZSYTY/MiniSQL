@@ -61,7 +61,7 @@ bool API::createTable(const std::string &tableName,
 
     cm->createTable(tableName, schema, primary_key);
     rm->createTable(tableName);
-    API::createIndex(tableName, primary_key, "_" + primary_key);
+    API::createIndex(tableName, primary_key, tableName + "_" + primary_key);
 
     return true;
 }

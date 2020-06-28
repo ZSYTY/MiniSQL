@@ -2,7 +2,7 @@
  * @Author: Tianyu You 
  * @Date: 2020-06-11 15:53:58 
  * @Last Modified by: Tianyu You
- * @Last Modified time: 2020-06-20 01:49:06
+ * @Last Modified time: 2020-06-28 15:12:50
  */
 
 #ifndef MINISQL_B_PLUS_TREE_H
@@ -42,7 +42,7 @@ private:
         if (offset >= degree) {
             throw std::out_of_range("Index refs out of range");
         }
-        return reinterpret_cast<int *>(content + data_size * degree + refs_size * offset + cnt_size + valid_bit_size);
+        return reinterpret_cast<int *>(content + data_size * (degree - 1) + refs_size * offset + cnt_size + valid_bit_size);
     }
 
     int *getNxt(BYTE* content) {
@@ -241,18 +241,19 @@ public:
     BPlusTree(BufferManager *_bm, MiniSQL::IndexInfo indexInfo, MiniSQL::TableInfo _tableInfo): bm(_bm) {
         tableInfo = _tableInfo;
         filename = indexInfo.indexName + ".index";
-        tableFileName = tableInfo.tableName + "db";
+        tableFileName = tableInfo.tableName + ".data";
         int sum = 1; // valid byte
         for (int i = 0; i < tableInfo.columnName.size(); i++) {
             if (tableInfo.columnName[i] == indexInfo.columnName) {
                 dataOffset = sum;
+                data_size = tableInfo.columnType[i].getSize();
             }
             sum += tableInfo.columnType[i].getSize();
         }
         recordSize = sum;
         recordPerBlock = MiniSQL::BlockSize / recordSize;
         // build();
-        data_size = (T == MiniSQL::SqlValueBaseType::MiniSQL_int ? sizeof(int) : (T == MiniSQL::SqlValueBaseType::MiniSQL_char ? sizeof(char) * (MiniSQL::MaxCharLength + 1) : sizeof(float)));
+        // data_size = (T == MiniSQL::SqlValueBaseType::MiniSQL_int ? sizeof(int) : (T == MiniSQL::SqlValueBaseType::MiniSQL_char ? sizeof(char) * (MiniSQL::MaxCharLength + 1) : sizeof(float)));
         degree = (MiniSQL::BlockSize + data_size - cnt_size - valid_bit_size) / (refs_size + data_size);
     }
     
@@ -379,6 +380,7 @@ public:
         BYTE *block = bm->getBlock(tableFileName, i);
         if (block[j]) {
             rst = toValue(block + j + dataOffset);
+            std::cout << "getValue: " << rst.int_val << std::endl;
             return true;
         } else {
             return false;

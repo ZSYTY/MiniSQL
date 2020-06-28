@@ -5,7 +5,7 @@
 // write to the file
 void RecordManager::createTable(const std::string &tableName)
 {
-    std::string fileName = tableName+".db";
+    std::string fileName = tableName+".data";
     // if table exist
     if(bufferManager->ifFileExists(fileName)){
         std::cerr<<"RecordManager::createTable: "<<"Table already exists."<<std::endl;
@@ -21,7 +21,7 @@ void RecordManager::createTable(const std::string &tableName)
 // drop the file
 void RecordManager::dropTable(const std::string &tableName)
 {
-    std::string fileName = tableName+".db";
+    std::string fileName = tableName+".data";
     //table doesn't exist
     if(!bufferManager->ifFileExists(fileName)){
         std::cerr<<"RecordManager::dropTable: "<<"Table doesn't exist."<<std::endl;
@@ -52,7 +52,7 @@ bool RecordManager::insertOneRecord(const std::string &tableName, const Tuple re
 {
     int tailBlockID,flag = 1;
     size_t offset;
-    std::string fileName = tableName+".db";
+    std::string fileName = tableName+".data";
     //std::vector<Tuple> tuples = getTuples(tableName);
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
 
@@ -152,7 +152,7 @@ int RecordManager::deleteRecord(const std::string &tableName,const std::vector<S
     int count = -1;
     bool flag = false, index_flag = false;
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
-    const std::string fileName = tableInfo.tableName + ".db";
+    const std::string fileName = tableInfo.tableName + ".data";
     //Check if table exist
     if (!bufferManager->ifFileExists(fileName)) {
         std::cerr << "RecordManger ERROR: " << "Table doesn't exist." << std::endl;
@@ -199,7 +199,7 @@ int RecordManager::deleteRecord(const std::string &tableName,const std::vector<S
 // remove all records in the table
 bool RecordManager::deleteRecord(const std::string &tableName)
 {
-    std::string fileName = tableName + ".db";
+    std::string fileName = tableName + ".data";
     bufferManager->removeFile(fileName);
     bufferManager->createFile(fileName);
     std::cout<<"Succesfully remove all the records in the table"<<std::endl;
@@ -210,7 +210,7 @@ bool RecordManager::deleteRecord(const std::string &tableName)
 bool RecordManager::selectRecord(const std::string &tableName, const std::vector<SqlCondition> &conditions)
 {
     TableInfo tableInfo = catalogManager->getTableInfo(tableName);
-    std::string fileName = tableName + ".db";
+    std::string fileName = tableName + ".data";
     // Check if talbe exist(already have been done in API)
     if(!bufferManager->ifFileExists(fileName)){
         std::cerr<<"RecordManger::selectRecord: "<<"Table doesn't exist."<<std::endl;
@@ -357,7 +357,10 @@ void RecordManager::tableTraversal(
     if(!tableInfo.indexes.empty() && conditionPos != -1 && indexPos != -1){
         SqlValue indexValue = conditions[conditionPos].val;
         int indexOffset = indexManager->search(tableInfo.tableName,tableInfo.indexes[indexPos].columnName,indexValue);
-        //std::cout<<indexOffset<<std::endl;
+        // std::cout<<indexOffset<<std::endl;
+        if (indexOffset == -1) {
+            return;
+        }
         Operator op = conditions[conditionPos].op;
         SqlValueBaseType indexType = indexValue.type;
         switch(op)
@@ -433,7 +436,7 @@ void RecordManager::linearTraversal(
         const std::vector<SqlCondition>& conditions,
         std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 ){
-    std::string fileName = tableInfo.tableName+".db";
+    std::string fileName = tableInfo.tableName+".data";
     unsigned int recordLen = getRecordSize(tableInfo.tableName);
     int recordsPerBlock = BlockSize/recordLen;
     int blockNum = bufferManager->getBlockCnt(fileName);
@@ -468,7 +471,7 @@ void RecordManager::indexTraversal(
         std::function<bool(BYTE*,size_t,size_t,std::shared_ptr<std::vector<SqlValue>>)> consumer
 )
 {
-    std::string fileName = tableInfo.tableName + ".db";
+    std::string fileName = tableInfo.tableName + ".data";
     int recordSize = getRecordSize(tableInfo.tableName);
     int recordsPerBlock = BlockSize / recordSize;
     int blockIndex = indexOffset / recordsPerBlock;
@@ -631,7 +634,7 @@ void RecordManager::printResult(TableInfo &tableInfo,const std::vector<Tuple> &r
 
 SqlValue RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int indexPos)
 {
-    const std::string fileName = tableInfo.tableName + ".db";
+    const std::string fileName = tableInfo.tableName + ".data";
     int recordSize = getRecordSize(tableInfo.tableName);
     int recordsPerBlock = BlockSize / recordSize;
     int blockIndex = indexOffset / recordsPerBlock;
@@ -660,9 +663,9 @@ SqlValue RecordManager::getValue(TableInfo &tableInfo,int indexOffset,int indexP
 
 void RecordManager::saveIndexes(TableInfo &tableInfo,const Tuple record,int offset)
 {
-    std::string fileName = tableInfo.tableName + ".db";
+    // std::string fileName = tableInfo.tableName + ".data";
     for(int i = 0;i < tableInfo.indexes.size();i++){
-        if(!indexManager->insertKey(fileName,record,offset)){
+        if(!indexManager->insertKey(tableInfo.tableName,record,offset)){
             std::cerr<<"RecordManager::saveIndexes: error when insert at No."<<offset<<std::endl;
         }
     }

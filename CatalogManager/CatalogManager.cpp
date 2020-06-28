@@ -13,7 +13,7 @@ bool CatalogManager::deleteTable(const std::string &tableName)
     }
     // Delete related files
     bufferManager->removeFile(tableName + ".def");
-    bufferManager->removeFile(tableName + ".db");
+    bufferManager->removeFile(tableName + ".data");
     // Delete related indexes
     if (!bufferManager->ifFileExists("index"))
     {
