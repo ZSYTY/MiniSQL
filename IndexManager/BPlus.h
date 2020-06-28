@@ -330,7 +330,11 @@ public:
             if (++lastIdx < size) {
                 return *getRefs(block, lastIdx);
             } else {
-                block = getBlock(lastOffset = *getNxt(block));
+                lastOffset = *getNxt(block);
+                if (lastOffset == -1) {
+                    return -1;
+                }
+                block = getBlock(lastOffset);
                 return *getRefs(block, lastIdx = 0);
             }
         } else {
