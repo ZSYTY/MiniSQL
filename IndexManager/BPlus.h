@@ -79,7 +79,7 @@ private:
                 *reinterpret_cast<int*>(ptr) = value.int_val;
                 break;
             case MiniSQL::SqlValueBaseType::MiniSQL_char:
-                value.char_val.copy(ptr, MiniSQL::MaxCharLength);
+                value.char_val.copy(ptr, data_size);
                 break;
             case MiniSQL::SqlValueBaseType::MiniSQL_float:
                 *reinterpret_cast<float*>(ptr) = value.float_val;
@@ -93,7 +93,7 @@ private:
                 return SqlValue(type, *reinterpret_cast<int*>(ptr));
                 break;
             case MiniSQL::SqlValueBaseType::MiniSQL_char:
-                return SqlValue(type, std::string(ptr, MiniSQL::MaxCharLength));
+                return SqlValue(type, std::string(ptr, data_size));
                 break;
             case MiniSQL::SqlValueBaseType::MiniSQL_float:
                 return SqlValue(type, *reinterpret_cast<float*>(ptr));

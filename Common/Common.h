@@ -40,8 +40,8 @@ struct SqlValueType {
             case SqlValueBaseType::MiniSQL_int:
                 return sizeof(int);
             case SqlValueBaseType::MiniSQL_char:
-                // return sizeof(char) * (charLength + 1);
-                return sizeof(char) * (MaxCharLength + 1);
+                return sizeof(char) * (charLength + 1);
+                // return sizeof(char) * (MaxCharLength + 1);
             case SqlValueBaseType::MiniSQL_float:
                 return sizeof(float);
         }
@@ -82,6 +82,10 @@ struct SqlValue {
                 case SqlValueBaseType::MiniSQL_float:
                     return float_val < rhs.float_val;
             }
+        } else if (type == SqlValueBaseType::MiniSQL_float and rhs.type == SqlValueBaseType::MiniSQL_int) {
+            return float_val < rhs.int_val;
+        } else if (type == SqlValueBaseType::MiniSQL_int and rhs.type == SqlValueBaseType::MiniSQL_float) {
+            return int_val < rhs.float_val;
         } else {
             throw std::runtime_error("Value types do not match");
         }

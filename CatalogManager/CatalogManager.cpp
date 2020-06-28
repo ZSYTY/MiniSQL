@@ -115,7 +115,7 @@ TableInfo CatalogManager::getTableInfo(const std::string &tableName)
         auto is_unique = (bool) (*columnInfo);
         columnInfo += sizeof(bool);
 
-        auto char_length = (short) (*columnInfo);
+        auto char_length = *reinterpret_cast<short*>(columnInfo);
         columnInfo += sizeof(short);
 
         SqlValueType svt(svbType, is_primary, is_unique, char_length);
