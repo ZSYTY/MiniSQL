@@ -405,12 +405,12 @@ void RecordManager::tableTraversal(
             }
             case Operator::EQ: // ==
             {
-                indexOffset = 0; 
+                //indexOffset = 0; 
 
                 //std::cout<<indexOffset<<std::endl;
                 SqlValue value = getValue(tableInfo, indexOffset, indexPos);
-                std::cout<<indexValue.int_val<<std::endl;
-                std::cout<<value.int_val<<std::endl;
+                // std::cout<<indexValue.int_val<<std::endl;
+                // std::cout<<value.int_val<<std::endl;
                 while (indexOffset != -1) {
                     if (value > indexValue || value < indexValue ) {
                         break;
