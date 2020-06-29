@@ -32,14 +32,14 @@ private:
     std::vector<std::pair<int, int>> path;
     
     BYTE *getData(BYTE *content, int offset) {
-        if (offset >= degree - 1) {
+        if (offset >= degree) {
             throw std::out_of_range("Index data out of range");
         }
         return content + data_size * offset + cnt_size + valid_bit_size;
     }
 
     int *getRefs(BYTE* content, int offset) {
-        if (offset >= degree) {
+        if (offset > degree) {
             throw std::out_of_range("Index refs out of range");
         }
         return reinterpret_cast<int *>(content + data_size * (degree - 1) + refs_size * offset + cnt_size + valid_bit_size);
@@ -103,35 +103,39 @@ private:
 
     void splitOne(BYTE *block, int idx) { // leaf
         short size = *getItemCnt(block);
-        if (idx == size) {
-            return;
+        if (idx != size) {
+            BYTE *p = getData(block, size) - 1, *rend = getData(block, idx) - 1;
+            do {
+                p[data_size] = p[0];
+                p--;
+            } while (p != rend);
         }
-        BYTE *p = getData(block, size) - 1, *rend = getData(block, idx);
+        int *p_refs = getRefs(block, size), *rend_refs = getRefs(block, idx) - 1;
         do {
-            p[data_size] = p[0];
-            p--;
-        } while (p != rend);
+            p_refs[1] = p_refs[0];
+            p_refs--;
+        } while (p_refs > rend_refs);
         // setDirty(lastOffset);
     }
 
     void insertOne(BYTE* block, int idx, const SqlValue &value, int offset) {
-        (*getItemCnt(block))++;
         splitOne(block, idx);
         BYTE *data = getData(block, idx);
         int *refs = getRefs(block, idx);
 
         writeData(data, value);
         *refs = offset;
+        (*getItemCnt(block))++;
     }
 
     void insertOne(BYTE* block, int idx, BYTE *newData, int newRefs) {
-        (*getItemCnt(block))++;
         splitOne(block, idx);
         BYTE *data = getData(block, idx);
         int *refs = getRefs(block, idx);
 
         std::copy(newData, newData + data_size, data);
         *refs = newRefs;
+        (*getItemCnt(block))++;
     }
 
     void split(BYTE *l, BYTE *r, int mid, int idx) {
@@ -152,7 +156,7 @@ private:
         for (auto it = path.rbegin(); it != path.rend(); it++) {
             int rt_offset = it->first, rt_idx = it->second;
             BYTE *rt = getBlock(rt_offset), *l = getBlock(l_offset), *r = getBlock(r_offset);
-            BYTE *cur = getData(l, *getItemCnt(l) - 1);
+            BYTE *cur = getData(l, *getItemCnt(l) - 1), *max_r = getData(r, *getItemCnt(r) - 1);
             if (*getItemCnt(rt) == degree - 1) {
                 int mid = (degree - 1) / 2;
                 BYTE *rt_r = getNewBlock();
@@ -162,8 +166,17 @@ private:
                 
                 if (lastIdx < *getItemCnt(rt)) {
                     insertOne(rt, rt_idx, cur, l_offset);
+                    *getRefs(rt, rt_idx + 1) = r_offset;
+                    if (rt_idx + 1 < *getItemCnt(rt)) {
+                        std::copy(max_r, max_r + data_size, getData(rt, rt_idx + 1));
+                    }
                 } else {
-                    insertOne(rt_r, rt_idx - *getItemCnt(rt), cur, l_offset);
+                    int tmp_idx = rt_idx - *getItemCnt(rt);
+                    insertOne(rt_r, tmp_idx, cur, l_offset);
+                    *getRefs(rt_r, tmp_idx + 1) = r_offset;
+                    if (tmp_idx + 1 < *getItemCnt(rt_r)) {
+                        std::copy(max_r, max_r + data_size, getData(rt_r, tmp_idx + 1));
+                    }
                 }
 
                 setDirty(rt_offset);
@@ -172,6 +185,10 @@ private:
                 r_offset = newOffset;
             } else {
                 insertOne(rt, rt_idx, cur, l_offset);
+                *getRefs(rt, rt_idx + 1) = r_offset;
+                if (rt_idx + 1 < *getItemCnt(rt)) {
+                    std::copy(max_r, max_r + data_size, getData(rt, rt_idx + 1));
+                }
                 setDirty(rt_offset);
                 break;
             }
@@ -252,8 +269,6 @@ public:
         }
         recordSize = sum;
         recordPerBlock = MiniSQL::BlockSize / recordSize;
-        // build();
-        // data_size = (T == MiniSQL::SqlValueBaseType::MiniSQL_int ? sizeof(int) : (T == MiniSQL::SqlValueBaseType::MiniSQL_char ? sizeof(char) * (MiniSQL::MaxCharLength + 1) : sizeof(float)));
         degree = (MiniSQL::BlockSize + data_size - cnt_size - valid_bit_size) / (refs_size + data_size);
     }
     
@@ -305,9 +320,6 @@ public:
 
                 updateUp(l_offset, newOffset);
                 // insertVal(value, offset);
-                if (lastIdx == *getItemCnt(getBlock(lastOffset)) - 1) {
-                    updateVal(value);
-                }
             }
             path.clear();
         }
@@ -384,7 +396,6 @@ public:
         BYTE *block = bm->getBlock(tableFileName, i);
         if (block[j]) {
             rst = toValue(block + j + dataOffset);
-            // std::cout << "getValue: " << rst.int_val << std::endl;
             return true;
         } else {
             return false;
@@ -401,20 +412,6 @@ public:
             }
         }
     }
-
-    // void deleteVal(const SqlValue &value, int offset) {
-    //     if (value.type != T) {
-    //         throw std::runtime_error("Value types do not match");
-    //     }
-    //     search(value, true);
-    //     if (! lastIsEnd and lastOffset != -1) {
-    //         BYTE *block = getBlock(lastOffset);
-    //         SqlValue cur = toValue(getData(block, lastIdx));
-    //         if (cur == value) {
-    //             // TODO:
-    //         }
-    //     }
-    // }
 };
 
 #endif

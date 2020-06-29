@@ -20,7 +20,7 @@ const std::string BufferManager::defaultDir = "DBFiles";
 
 void BufferManager::flush(Block &block, bool bulk) {
     if (block.dirty) {
-        std::cout << "flush: (" << block.filename << ", " << block.offset << ")" << std::endl;
+        // std::cout << "flush: (" << block.filename << ", " << block.offset << ")" << std::endl;
         std::ofstream outfile(defaultDir + "/" + block.filename, std::ios::binary | std::ios::in);
         outfile.seekp(block.offset * BlockSize, std::ios::beg);
         outfile.write(block.content, BlockSize);
@@ -50,7 +50,7 @@ BufferManager::~BufferManager() {
 }
 
 BYTE* BufferManager::getBlock(const std::string &filename, unsigned int offset, bool allocate) {
-    std::cout << "getBlock: (" << filename << ", " << offset << ", " << allocate << ")" << std::endl;
+    // std::cout << "getBlock: (" << filename << ", " << offset << ", " << allocate << ")" << std::endl;
     auto key = std::make_pair(filename, offset);
     if (bufferMap.count(key)) {
         Block &cur = blockBuffer[bufferMap[key]];
@@ -127,7 +127,7 @@ bool BufferManager::ifFileExists(const std::string &filename) {
 
 void BufferManager::createFile(const std::string &filename) {
     if (! ifFileExists(filename)) {
-        std::cout << filename << std::endl;
+        // std::cout << filename << std::endl;
         std::ofstream outfile(defaultDir + "/" + filename, std::ios::binary | std::ios::trunc);
         outfile.flush();
     }
