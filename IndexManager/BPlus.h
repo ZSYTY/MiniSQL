@@ -232,14 +232,26 @@ private:
         bool found = false;
         while (! found) {
             BYTE *block = getBlock(lastOffset);
-            for (int i = 0; i < *getItemCnt(block); i++) {
-                SqlValue cur = toValue(getData(block, i));
-                if (cur >= value) {
-                    lastIdx = i;
-                    lastIsEnd = false;
-                    break;
-                }
-            } // needs improvement: binary search
+            int l = 0, r = *getItemCnt(block) - 1;
+            while (l <= r) {
+                int mid = l + (r - l) / 2;
+                SqlValue cur = toValue(getData(block, mid));
+                if (cur < value) l = mid + 1;
+                else r = mid - 1;
+            }
+            SqlValue cur = toValue(getData(block, l));
+            if (l < *getItemCnt(block) and cur >= value) {
+                lastIdx = l;
+                lastIsEnd = false;
+            }
+            // for (int i = 0; i < *getItemCnt(block); i++) {
+            //     SqlValue cur = toValue(getData(block, i));
+            //     if (cur >= value) {
+            //         lastIdx = i;
+            //         lastIsEnd = false;
+            //         break;
+            //     }
+            // } // needs improvement: binary search
             if (lastIsEnd) {
                 lastIdx = *getItemCnt(block);
             }

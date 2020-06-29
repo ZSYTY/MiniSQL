@@ -164,7 +164,6 @@ int IndexManager::searchHead(const std::string &tableName, const std::string &co
 }
 
 bool IndexManager::insertKey(const std::string &tableName, const Tuple &tuple, int offset) {
-    std::cout << "insertKey: (" << tuple[1].int_val << ", " << offset << ")" << std::endl;
     bool isInserted = false;
     tableInfo = catalogManager->getTableInfo(tableName);
     for (int i = 0; i < tableInfo.columnName.size(); i++) {
